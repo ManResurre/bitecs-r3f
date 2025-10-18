@@ -16,7 +16,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "predeploy": "yarn run build",
-    "deploy": "wrangler pages deploy dist"
+    "deploy": "wrangler pages deploy dist --project-name=bitecs-r3f"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.6",
