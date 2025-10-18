@@ -1,19 +1,22 @@
 {
-  "name": "r3f-bitecs-starter",
+  "name": "bitecs-r3f",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "description": "This project is a demo about how to integrate a bitECS with a React Three Fiber rendering to display your simulations (or games) inside a web browser.",
   "author": {
-    "name": "raaaahman",
-    "email": "github@devindetails.com"
+    "name": "Serge Esmanovich",
+    "email": "manresurre@proton.me"
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "type-check": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "predeploy": "yarn run build",
+    "deploy": "wrangler pages deploy dist"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.6",
@@ -28,6 +31,7 @@
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.13.13",
     "@tanstack/router-devtools": "^1.133.3",
     "@types/node": "^24.8.0",
     "@types/react": "^19.2.2",
@@ -40,6 +44,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "typescript": "^5.9.3",
     "vite": "^7.1.10",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.43.0"
   }
 }

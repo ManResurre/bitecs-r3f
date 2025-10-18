@@ -2,7 +2,6 @@ import {Html} from "@react-three/drei";
 import {Vector3} from "three";
 import {useWorld} from "../hooks/useWorld.tsx";
 import {useFrame} from "@react-three/fiber";
-import {exitQuery} from "bitecs";
 import {healthQuery} from "../../logic/queries";
 import {HealthComponent} from "../../logic/components";
 import {useCallback, useState} from "react";
