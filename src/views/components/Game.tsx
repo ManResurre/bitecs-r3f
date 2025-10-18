@@ -1,41 +1,68 @@
-import {Suspense} from "react";
-import {WorldContextProvider} from "../contexts/WorldContext";
-import {Cars} from "./Cars";
+import {Suspense, useRef} from "react";
+import {Box, Environment, PerspectiveCamera, Plane, Sky, Stats} from '@react-three/drei';
+import {Perf} from 'r3f-perf';
+import {Physics, RigidBody} from '@react-three/rapier';
 
-import {Tilemap} from "./Tilemap";
-import {CameraControls, OrthographicCamera} from "@react-three/drei";
+// import {Cars} from "./Cars";
 import {useLoaderData} from "@tanstack/react-router";
 import {Health} from "./Health.tsx";
+import {Mobs} from "./Mobs.tsx";
+// import {useControls} from "leva";
+import Light from "./Light.tsx";
+import {WorldContextProvider} from "../contexts/WorldContextProvider.tsx";
+import CameraController from "./CameraController.tsx";
 
 export function Game() {
+    const rbRef = useRef(null);
+    const planeRef = useRef(null);
+
     const {levelData} = useLoaderData({from: "/"});
+    // const [{mobs}] = useControls('NPC', () => ({
+    //     mobs: 5,
+    // }));
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const handlePlaceClick = (event: MouseEvent) => {
+        // console.log(event);
+    };
 
     return (
         <>
-            <color attach="background" args={["#000000"]}/>
-            <ambientLight color="#ececec" intensity={0.66}/>
-            <OrthographicCamera
+            <CameraController/>
+            <PerspectiveCamera
                 makeDefault
-                position={[3, 3, 3]}
-                near={-100}
-                far={100}
-                zoom={42}
             />
-            <CameraControls makeDefault/>
+
             <WorldContextProvider levelData={levelData}>
-                <group
-                    position={[
-                        -levelData.layers[0].tiles.length / 2,
-                        0,
-                        -levelData.layers[0].tiles[0].length / 2,
-                    ]}
-                >
-                    <Suspense>
-                        <Cars/>
-                        <Tilemap/>
-                        <Health/>
-                    </Suspense>
-                </group>
+
+                <Suspense>
+                    <Environment preset="park"/>
+                    <Sky inclination={0.52} sunPosition={[100, 20, 100]}/>
+                    <Light/>
+                    {/*<Cars/>*/}
+                    {/*<Tilemap/>*/}
+                    <Health/>
+                    <Physics debug gravity={[0, -1, 0]}>
+                        <RigidBody position={[0, 0, 0]} ref={rbRef} type="fixed" colliders="trimesh">
+                            <Plane
+                                ref={planeRef}
+                                args={[35, 35]}
+                                rotation={[-Math.PI / 2, 0, 0]}
+                                position={[0, 0, 0]}
+                                onClick={handlePlaceClick}
+                                receiveShadow
+                            >
+                                <shadowMaterial transparent opacity={0.2}/>
+                                <meshStandardMaterial attach="material" color="#ccc"/>
+                            </Plane>
+                        </RigidBody>
+                        <Box castShadow position={[-2, 1, 0]}/>
+                        <Mobs/>
+                    </Physics>
+                    <Stats className="stats"/>
+                    <Perf position={"bottom-right"}/>
+                </Suspense>
+
             </WorldContextProvider>
         </>
     );

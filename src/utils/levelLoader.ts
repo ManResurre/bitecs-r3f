@@ -1,12 +1,6 @@
 import {LevelData} from "../types/LevelData.tsx";
 
 export async function loadLevelData(): Promise<LevelData> {
-    // Вариант 1: Загрузка из JSON файла
-    // const response = await fetch('/levels/level1.json');
-    // const data = await response.json();
-    // return data;
-
-    // Вариант 2: Статические данные для тестирования
     return {
         layers: [
             {
@@ -45,22 +39,8 @@ export async function loadLevelData(): Promise<LevelData> {
                 "color": 16711680,
                 "start": [1, 0],
                 "delay": 2000,
-                "max": 50,
+                "max": 20,
                 "end": [5, 6]
-            },
-            {
-                "color": 10711680,
-                "start": [1, 0],
-                "delay": 2000,
-                "max": 50,
-                "end": [3, 4]
-            },
-            {
-                "color": 10711680,
-                "start": [3, 1],
-                "delay": 2000,
-                "max": 50,
-                "end": [5, 1]
             },
         ]
     };

@@ -16,7 +16,7 @@ export function Health() {
         if (!health.length)
             return;
         return HealthComponent.value[health[0]];
-    }, [])
+    }, [world])
 
 
     useFrame(() => {

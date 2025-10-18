@@ -52,10 +52,8 @@ export function Cars() {
         );
 
         const newCars = enterQuery(carsQuery)(world).map((eid) => {
-
             const obj = clone(
-                // @ts-ignore
-                cars.at(Math.floor(Math.random() * cars.length))!.scene
+                cars[Math.floor(Math.random() * cars.length)]!.scene
             );
             obj.name = eid.toString();
             obj.scale.set(0.1, 0.1, 0.1);
