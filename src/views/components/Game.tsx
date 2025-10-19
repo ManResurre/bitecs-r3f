@@ -57,7 +57,7 @@ export function Game() {
                                 <meshStandardMaterial attach="material" color="#ccc"/>
                             </Plane>
                         </RigidBody>
-                        <Box castShadow position={[-2, 1, 0]}/>
+                        {/*<Box castShadow position={[-2, 1, 0]}/>*/}
                         <Mobs/>
                     </Physics>
                     <Grid position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}/>

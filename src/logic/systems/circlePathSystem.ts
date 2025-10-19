@@ -19,21 +19,34 @@ export const circlePathSystem = defineSystem((world: CustomWorld) => {
         CircleMovementComponent.angle[eid] += angularSpeed * (world.time.delta / 1000);
         const currentAngle = CircleMovementComponent.angle[eid];
 
-        // Вычисляем текущую позицию на окружности
-        const currentX = centerX + radius * Math.cos(currentAngle);
-        const currentZ = centerZ + radius * Math.sin(currentAngle);
+        // Вычисляем желаемую позицию на окружности
+        const targetX = centerX + radius * Math.cos(currentAngle);
+        const targetZ = centerZ + radius * Math.sin(currentAngle);
+
+        // Текущая позиция
+        const currentX = PositionComponent.x[eid];
+        const currentZ = PositionComponent.z[eid];
+
+        // Вектор от текущей позиции к целевой
+        const correctionX = targetX - currentX;
+        const correctionZ = targetZ - currentZ;
 
         // Вектор касательной скорости (перпендикулярно радиус-вектору)
         // Для движения по окружности скорость должна быть направлена по касательной
         const tangentX = -Math.sin(currentAngle); // Компонента X касательного вектора
         const tangentZ = Math.cos(currentAngle);  // Компонента Z касательного вектора
 
-        // Скорость = касательный вектор × угловая скорость × радиус
-        const speed = angularSpeed * radius;
+        // Основная скорость по касательной
+        const baseSpeed = angularSpeed * radius;
+
+        // Корректирующая скорость к целевой позиции (можно настроить коэффициент)
+        const correctionStrength = 0.1; // Чем больше, тем быстрее коррекция
+        const correctionSpeedX = correctionX * correctionStrength;
+        const correctionSpeedZ = correctionZ * correctionStrength;
 
         // Устанавливаем вектор скорости
-        VelocityComponent.x[eid] = tangentX * speed;
-        VelocityComponent.z[eid] = tangentZ * speed;
+        VelocityComponent.x[eid] = tangentX * baseSpeed + correctionSpeedX;
+        VelocityComponent.z[eid] = tangentZ * baseSpeed + correctionSpeedZ;
         VelocityComponent.y[eid] = 0; // Обнуляем Y, так как движение в плоскости XZ
 
         // Опционально: корректируем позицию для предотвращения накопления ошибок

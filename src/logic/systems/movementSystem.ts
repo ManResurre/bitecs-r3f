@@ -12,13 +12,6 @@ export const movementSystem = defineSystem((world: CustomWorld) => {
     const movingEntities = movementQuery(world);
 
     movingEntities.forEach((eid) => {
-        // VelocityComponent.x[eid] =
-        //     Math.sin((Math.PI * RotationComponent.y[eid]) / 2) *
-        //     SpeedComponent.maxSpeed[eid];
-        // VelocityComponent.z[eid] =
-        //     Math.cos((Math.PI * RotationComponent.y[eid]) / 2) *
-        //     SpeedComponent.maxSpeed[eid];
-
         PositionComponent.x[eid] +=
             (VelocityComponent.x[eid] * world.time.delta) / 1000;
         PositionComponent.y[eid] +=
@@ -26,7 +19,15 @@ export const movementSystem = defineSystem((world: CustomWorld) => {
         PositionComponent.z[eid] +=
             (VelocityComponent.z[eid] * world.time.delta) / 1000;
 
-        // console.log(VelocityComponent.x[eid], VelocityComponent.z[eid]);
+        //В целом поворот скорее всего лучше делать где то в r3f наверное, хотя можно и в отдельной системе
+        //Вообще это просто для дебага позиции
+        // Поворачиваем моба в направлении скорости
+        const speedX = VelocityComponent.x[eid];
+        const speedZ = VelocityComponent.z[eid];
+
+        // Вычисляем угол поворота в радианах
+        // atan2(z, x) дает угол относительно положительной оси X
+        RotationComponent.y[eid] = Math.atan2(speedX, speedZ);
     });
 
     return world;
