@@ -10,6 +10,8 @@ import {movementSystem} from "../../logic/systems/movementSystem.ts";
 import {damageSystem} from "../../logic/systems/damageSystem.ts";
 import {useFrame} from "@react-three/fiber";
 import {WorldContext} from "./WorldContext.tsx";
+import {spawnMobsSystem} from "../../logic/systems/spawnMobsSystem.ts";
+import {selectCellSystem} from "../../logic/systems/selectCellSystem.ts";
 
 export function WorldContextProvider({
                                          children,
@@ -17,14 +19,16 @@ export function WorldContextProvider({
                                      }: PropsWithChildren<{ levelData: LevelData }>) {
     const world = createLevel(levelData);
 
-    pathfindingSystem(world);
+    // pathfindingSystem(world);
 
     const pipeline = pipe(
         timeSystem,
-        spawnSystem,
-        steeringSystem,
+        // spawnSystem,
+        spawnMobsSystem,
+        selectCellSystem,
+        // steeringSystem,
         movementSystem,
-        damageSystem
+        // damageSystem
     );
 
     useFrame(() => {

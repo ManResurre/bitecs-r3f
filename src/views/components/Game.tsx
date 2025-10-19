@@ -11,6 +11,7 @@ import {Mobs} from "./Mobs.tsx";
 import Light from "./Light.tsx";
 import {WorldContextProvider} from "../contexts/WorldContextProvider.tsx";
 import CameraController from "./CameraController.tsx";
+import Grid from "./Grid.tsx";
 
 export function Game() {
     const rbRef = useRef(null);
@@ -41,7 +42,7 @@ export function Game() {
                     <Light/>
                     {/*<Cars/>*/}
                     {/*<Tilemap/>*/}
-                    <Health/>
+                    {/*<Health/>*/}
                     <Physics debug gravity={[0, -1, 0]}>
                         <RigidBody position={[0, 0, 0]} ref={rbRef} type="fixed" colliders="trimesh">
                             <Plane
@@ -59,10 +60,10 @@ export function Game() {
                         <Box castShadow position={[-2, 1, 0]}/>
                         <Mobs/>
                     </Physics>
+                    <Grid position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}/>
                     <Stats className="stats"/>
                     <Perf position={"bottom-right"}/>
                 </Suspense>
-
             </WorldContextProvider>
         </>
     );

@@ -39,9 +39,23 @@ export async function loadLevelData(): Promise<LevelData> {
                 "color": 16711680,
                 "start": [1, 0],
                 "delay": 2000,
-                "max": 20,
+                "max": 2,
                 "end": [5, 6]
             },
+        ],
+        mobs: [
+            {
+                name: 'zombie',
+                delay: 2000,
+                max: 1,
+                position: [1, 0]
+            },
+            // {
+            //     name: 'hunter',
+            //     delay: 2000,
+            //     max: 5,
+            //     position: [2, 0]
+            // }
         ]
     };
 }

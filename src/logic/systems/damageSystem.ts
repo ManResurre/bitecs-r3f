@@ -17,7 +17,5 @@ export const damageSystem = defineSystem((world: CustomWorld) => {
             HealthComponent.value[healths[0]] -= 1;
     }
 
-    // console.log(time);
-
     return world;
 });

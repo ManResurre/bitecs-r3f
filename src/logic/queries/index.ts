@@ -1,8 +1,8 @@
 import {defineQuery, enterQuery, exitQuery} from "bitecs";
 import {
-    ColorComponent, HealthComponent,
+    ColorComponent, HealthComponent, MobComponent,
     PositionComponent,
-    RotationComponent,
+    RotationComponent, SelectedCellComponent,
     SpawnComponent,
     SpeedComponent,
     TileComponent,
@@ -38,12 +38,25 @@ export const spawnQuery = defineQuery([
     SpawnComponent,
 ]);
 
+export const spawnMobsQuery = defineQuery([
+    PositionComponent,
+    SpawnComponent,
+    MobComponent
+]);
+
 export const enterSpawnQuery = enterQuery(spawnQuery);
 
 export const carsQuery = defineQuery([
     PositionComponent,
     RotationComponent,
     ColorComponent,
+]);
+
+export const mobsQuery = defineQuery([
+    PositionComponent,
+    RotationComponent,
+    MobComponent,
+    SelectedCellComponent
 ]);
 
 export const enterCarsQuery = enterQuery(carsQuery);

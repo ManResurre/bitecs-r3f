@@ -5,7 +5,7 @@ import {CuboidCollider, RapierRigidBody, RigidBody} from "@react-three/rapier";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {PositionComponent, RotationComponent} from "../../logic/components";
 import {useWorld} from "../hooks/useWorld.tsx";
-import {carsQuery} from "../../logic/queries";
+import {mobsQuery} from "../../logic/queries";
 import {enterQuery, exitQuery} from "bitecs";
 
 export function Mobs() {
@@ -22,16 +22,18 @@ export function Mobs() {
     // };
 
     useFrame(() => {
-        const currentMobs = carsQuery(world);
-        const oldMobs = exitQuery(carsQuery)(world);
-        const newMobs = enterQuery(carsQuery)(world);
+        const currentMobs = mobsQuery(world);
+        // console.log(currentMobs);
+
+        const oldMobs = exitQuery(mobsQuery)(world);
+        const newMobs = enterQuery(mobsQuery)(world);
 
         // Удаляем старые мобы
-        if (oldMobs.length) {
-            oldMobs.forEach(eid => {
-                rigidBodiesRef.current.delete(eid);
-            });
-        }
+        // if (oldMobs.length) {
+        //     oldMobs.forEach(eid => {
+        //         rigidBodiesRef.current.delete(eid);
+        //     });
+        // }
 
         // Форсируем перерисовку только при реальных изменениях
         if (newMobs.length || oldMobs.length)
@@ -66,7 +68,7 @@ export function Mobs() {
     }, []);
 
     // Рендерим мобов как React компоненты
-    const mobComponents = carsQuery(world).map((eid) => (
+    const mobComponents = mobsQuery(world).map((eid) => (
         <RigidBody
             key={eid}
             ref={setRigidBodyRef(eid)}
@@ -87,6 +89,11 @@ export function Mobs() {
 
     // Очистка при размонтировании
     useEffect(() => {
+        // console.log(mobsQuery(world));
+        // mobsQuery(world).map((eid)=>{
+        //     console.log(eid);
+        // })
+
         return () => {
             rigidBodiesRef.current.clear();
         };
