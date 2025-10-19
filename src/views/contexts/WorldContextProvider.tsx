@@ -12,6 +12,7 @@ import {useFrame} from "@react-three/fiber";
 import {WorldContext} from "./WorldContext.tsx";
 import {spawnMobsSystem} from "../../logic/systems/spawnMobsSystem.ts";
 import {selectCellSystem} from "../../logic/systems/selectCellSystem.ts";
+import {circlePathSystem} from "../../logic/systems/circlePathSystem.ts";
 
 export function WorldContextProvider({
                                          children,
@@ -27,6 +28,7 @@ export function WorldContextProvider({
         spawnMobsSystem,
         selectCellSystem,
         // steeringSystem,
+        circlePathSystem,
         movementSystem,
         // damageSystem
     );

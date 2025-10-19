@@ -7,6 +7,7 @@ import {
 } from "bitecs";
 import {mobsQuery, spawnMobsQuery, spawnQuery} from "../queries";
 import {
+    CircleMovementComponent,
     MobComponent,
     PositionComponent,
     RotationComponent, SelectedCellComponent,
@@ -15,6 +16,8 @@ import {
     VelocityComponent,
 } from "../components";
 import {WithTime} from "../../types";
+
+const radius = 5;
 
 export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
     const spawnPoints = spawnMobsQuery(world);
@@ -37,11 +40,16 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
             addComponent(world, SpeedComponent, eid);
             addComponent(world, MobComponent, eid);
             addComponent(world, SelectedCellComponent, eid);
+            addComponent(world, CircleMovementComponent, eid);
 
             MobComponent.name[eid] = MobComponent.name[spawnId];
-            PositionComponent.x[eid] = PositionComponent.x[spawnId];
+
+            const currentX = PositionComponent.x[spawnId] + radius * Math.cos(0);
+            const currentZ = PositionComponent.z[spawnId] + radius * Math.sin(0);
+
+            PositionComponent.x[eid] = currentX;
             PositionComponent.y[eid] = PositionComponent.y[spawnId];
-            PositionComponent.z[eid] = PositionComponent.z[spawnId];
+            PositionComponent.z[eid] = currentZ;
 
             RotationComponent.y[eid] = Math.floor(Math.random() * 4);
 
@@ -49,6 +57,14 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
             SpeedComponent.acceleration[eid] = 0.1;
 
             SpawnComponent.cooldown[spawnId] += SpawnComponent.delay[spawnId];
+
+            CircleMovementComponent.angle[eid] = 0;
+            CircleMovementComponent.radius[eid] = radius;
+            CircleMovementComponent.centerX[eid] = PositionComponent.x[spawnId];
+            CircleMovementComponent.centerZ[eid] = PositionComponent.z[spawnId];
+            CircleMovementComponent.angularSpeed[eid] = 0.2;
+
+
         }
 
 

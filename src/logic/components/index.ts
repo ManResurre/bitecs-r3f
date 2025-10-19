@@ -32,3 +32,11 @@ export const HealthComponent = defineComponent({
 });
 
 export const SelectedCellComponent = defineComponent(Vector2);
+
+export const CircleMovementComponent = defineComponent({
+    centerX: Types.f32,    // центр окружности по X
+    centerZ: Types.f32,    // центр окружности по Z
+    radius: Types.f32,     // радиус окружности
+    angle: Types.f32,      // текущий угол в радианах
+    angularSpeed: Types.f32, // угловая скорость (радиан/секунду)
+});

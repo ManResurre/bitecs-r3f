@@ -9,8 +9,8 @@ export const selectCellSystem = defineSystem((world: CustomWorld) => {
     const mobs = mobsQuery(world);
 
     const getHighlightedCell = (x: number, y: number) => {
-        const i = Math.floor((x + (size.height * cellSize) / 2) / cellSize);
-        const j = Math.floor((y + (size.width * cellSize) / 2) / cellSize);
+        const i = Math.round((x + (size.height * cellSize) / 2) / cellSize);
+        const j = Math.round((y + (size.width * cellSize) / 2) / cellSize);
         return {i, j};
     };
     mobs.map((mobId) => {
