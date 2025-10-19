@@ -54,7 +54,7 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
             RotationComponent.y[eid] = Math.floor(Math.random() * 4);
 
             SpeedComponent.maxSpeed[eid] = 0.5;
-            SpeedComponent.acceleration[eid] = 0.1;
+            SpeedComponent.acceleration[eid] = 0.5;
 
             SpawnComponent.cooldown[spawnId] += SpawnComponent.delay[spawnId];
 
@@ -63,21 +63,19 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
             CircleMovementComponent.centerX[eid] = PositionComponent.x[spawnId];
             CircleMovementComponent.centerZ[eid] = PositionComponent.z[spawnId];
             CircleMovementComponent.angularSpeed[eid] = 0.2;
-
-
         }
 
 
-        // if (
-        //     SpawnComponent.cooldown[spawnId] <= 0 &&
-        //     mobs.length === SpawnComponent.max[spawnId]
-        // ) {
-        //     const eid = mobs[Math.floor(Math.random() * mobs.length)];
-        //
-        //     removeEntity(world, eid);
-        //
-        //     SpawnComponent.cooldown[spawnId] += SpawnComponent.delay[spawnId];
-        // }
+        if (
+            SpawnComponent.cooldown[spawnId] <= 0 &&
+            mobs.length === SpawnComponent.max[spawnId]
+        ) {
+            const eid = mobs[Math.floor(Math.random() * mobs.length)];
+
+            removeEntity(world, eid);
+
+            SpawnComponent.cooldown[spawnId] += SpawnComponent.delay[spawnId];
+        }
     }
 
     return world;

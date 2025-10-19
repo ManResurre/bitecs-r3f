@@ -46,7 +46,7 @@ export function Mobs() {
                 rigidBody.setTranslation(
                     {
                         x: PositionComponent.x[eid],
-                        y: PositionComponent.y[eid],
+                        y: rigidBody.translation().y,
                         z: PositionComponent.z[eid]
                     },
                     true
@@ -74,7 +74,7 @@ export function Mobs() {
             ref={setRigidBodyRef(eid)}
             position={[
                 PositionComponent.x[eid],
-                PositionComponent.y[eid],
+                5,
                 PositionComponent.z[eid]
             ]}
             rotation={[0, (RotationComponent.y[eid] * Math.PI) / 2, 0]}

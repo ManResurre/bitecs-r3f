@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from "react";
+import React, {useEffect, useMemo} from "react";
 import {Group, Mesh, Object3D, Object3DEventMap, Vector3} from "three";
 import {useFBX} from "@react-three/drei";
 import {SkeletonUtils} from "three-stdlib";
@@ -49,4 +49,4 @@ const FbxModel = ({url, onLoadModel, position, ...props}: FbxModelProps) => {
     );
 };
 
-export default FbxModel;
+export default React.memo(FbxModel);

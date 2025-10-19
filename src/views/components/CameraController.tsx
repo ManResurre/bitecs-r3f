@@ -1,6 +1,6 @@
 import {useThree} from '@react-three/fiber';
 import {useControls} from 'leva';
-import {useEffect} from "react";
+import React, {useEffect} from "react";
 
 const CameraController = () => {
     const {camera} = useThree();
@@ -22,4 +22,4 @@ const CameraController = () => {
     return null;
 };
 
-export default CameraController;
+export default React.memo(CameraController);

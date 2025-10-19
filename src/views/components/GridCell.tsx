@@ -1,20 +1,38 @@
-import React, {useRef} from "react";
-import {ThreeElements} from "@react-three/fiber";
+import React, {useRef, useState} from "react";
+import {ThreeElements, useFrame} from "@react-three/fiber";
+import {SelectedCellComponent} from "../../logic/components";
+import {mobsQuery} from "../../logic/queries";
+import {useWorld} from "../hooks/useWorld.tsx";
 
 interface GridCellProps {
     position: ThreeElements['mesh']['position'],
-    size: number;
-    isHighlighted?: boolean;
+    size: number,
+    isHighlighted?: boolean,
+    rowIndex?: number,
+    colIndex?: number
 }
 
 const GridCell = ({
                       position,
                       size = 1,
-                      isHighlighted = false,
+                      rowIndex,
+                      colIndex,
                       ...rest
                   }: GridCellProps) => {
-
+    const world = useWorld();
     const meshRef = useRef(null);
+    const [highlighted, setHighlighted] = useState(false);
+
+    useFrame(() => {
+        const mobs = mobsQuery(world);
+        setHighlighted(false)
+        mobs.some((mobId) => {
+            if (rowIndex === SelectedCellComponent.x[mobId] && colIndex == SelectedCellComponent.y[mobId]) {
+                setHighlighted(true)
+                return
+            }
+        })
+    })
 
     return (
         <mesh
@@ -24,7 +42,7 @@ const GridCell = ({
         >
             <planeGeometry args={[size, size]}/>
             <meshBasicMaterial
-                color={isHighlighted ? 0x00ff00 : 0xffffff}
+                color={highlighted ? 0x00ff00 : 0xffffff}
                 transparent
                 opacity={0.5}
             />

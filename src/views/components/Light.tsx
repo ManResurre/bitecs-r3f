@@ -1,4 +1,4 @@
-import {RefObject, useEffect, useRef} from "react";
+import React, {RefObject, useEffect, useRef} from "react";
 import {CameraHelper, DirectionalLight, DirectionalLightHelper} from "three";
 import {useHelper} from "@react-three/drei";
 import {useControls} from "leva";
@@ -44,4 +44,4 @@ const Light = () => {
     )
 }
 
-export default Light;
+export default React.memo(Light);
