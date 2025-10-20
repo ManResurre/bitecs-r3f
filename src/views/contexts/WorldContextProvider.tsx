@@ -1,18 +1,15 @@
 import {PropsWithChildren} from "react";
 import {LevelData} from "../../types/LevelData.tsx";
 import {createLevel} from "../../logic/createLevel.ts";
-import {pathfindingSystem} from "../../logic/systems/pathfindingSystem.ts";
 import {pipe} from "bitecs";
 import {timeSystem} from "../../logic/systems/timeSystem.ts";
-import {spawnSystem} from "../../logic/systems/spawnSystem.ts";
-import {steeringSystem} from "../../logic/systems/steeringSystem.ts";
 import {movementSystem} from "../../logic/systems/movementSystem.ts";
-import {damageSystem} from "../../logic/systems/damageSystem.ts";
 import {useFrame} from "@react-three/fiber";
 import {WorldContext} from "./WorldContext.tsx";
 import {spawnMobsSystem} from "../../logic/systems/spawnMobsSystem.ts";
 import {selectCellSystem} from "../../logic/systems/selectCellSystem.ts";
-import {circlePathSystem} from "../../logic/systems/circlePathSystem.ts";
+import {astarPathSystem} from "../../logic/systems/astarPathSystem.ts";
+import {decisionSystem} from "../../logic/systems/decisionSystem.ts";
 
 export function WorldContextProvider({
                                          children,
@@ -21,6 +18,7 @@ export function WorldContextProvider({
     const world = createLevel(levelData);
 
     // pathfindingSystem(world);
+    // astarPathSystem(world);
 
     const pipeline = pipe(
         timeSystem,
@@ -28,8 +26,11 @@ export function WorldContextProvider({
         spawnMobsSystem,
         selectCellSystem,
         // steeringSystem,
-        circlePathSystem,
+        // circlePathSystem,
+        decisionSystem,
+        astarPathSystem,
         movementSystem,
+
         // damageSystem
     );
 

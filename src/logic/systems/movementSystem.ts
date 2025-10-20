@@ -3,7 +3,6 @@ import {movementQuery} from "../queries";
 import {
     PositionComponent,
     RotationComponent,
-    SpeedComponent,
     VelocityComponent,
 } from "../components";
 import {CustomWorld} from "../../types";

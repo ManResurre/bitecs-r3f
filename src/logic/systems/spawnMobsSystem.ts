@@ -5,8 +5,9 @@ import {
     IWorld,
     removeEntity,
 } from "bitecs";
-import {mobsQuery, spawnMobsQuery, spawnQuery} from "../queries";
+import {mobsQuery, spawnMobsQuery} from "../queries";
 import {
+    AStarPathMovementComponent,
     CircleMovementComponent,
     MobComponent,
     PositionComponent,
@@ -41,6 +42,7 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
             addComponent(world, MobComponent, eid);
             addComponent(world, SelectedCellComponent, eid);
             addComponent(world, CircleMovementComponent, eid);
+            addComponent(world, AStarPathMovementComponent, eid);
 
             MobComponent.name[eid] = MobComponent.name[spawnId];
 
@@ -63,19 +65,21 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
             CircleMovementComponent.centerX[eid] = PositionComponent.x[spawnId];
             CircleMovementComponent.centerZ[eid] = PositionComponent.z[spawnId];
             CircleMovementComponent.angularSpeed[eid] = 0.2;
+
+            AStarPathMovementComponent.timeToNextThink[eid] = 5000;
         }
 
 
-        if (
-            SpawnComponent.cooldown[spawnId] <= 0 &&
-            mobs.length === SpawnComponent.max[spawnId]
-        ) {
-            const eid = mobs[Math.floor(Math.random() * mobs.length)];
-
-            removeEntity(world, eid);
-
-            SpawnComponent.cooldown[spawnId] += SpawnComponent.delay[spawnId];
-        }
+        // if (
+        //     SpawnComponent.cooldown[spawnId] <= 0 &&
+        //     mobs.length === SpawnComponent.max[spawnId]
+        // ) {
+        //     const eid = mobs[Math.floor(Math.random() * mobs.length)];
+        //
+        //     removeEntity(world, eid);
+        //
+        //     SpawnComponent.cooldown[spawnId] += SpawnComponent.delay[spawnId];
+        // }
     }
 
     return world;

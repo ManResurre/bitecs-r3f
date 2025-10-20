@@ -1,4 +1,4 @@
-import {addEntity, defineSystem} from "bitecs";
+import {defineSystem} from "bitecs";
 import {CustomWorld} from "../../types";
 import {mobsQuery} from "../queries";
 import {PositionComponent, SelectedCellComponent} from "../components";

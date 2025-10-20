@@ -40,3 +40,14 @@ export const CircleMovementComponent = defineComponent({
     angle: Types.f32,      // текущий угол в радианах
     angularSpeed: Types.f32, // угловая скорость (радиан/секунду)
 });
+
+export const AStarPathMovementComponent = defineComponent({
+    timeToNextThink: Types.f32,
+    target: Vector2,
+    finalTarget: Vector2,
+    movement: Types.i8,
+    pathXs: [Types.i32, 100],
+    pathYs: [Types.i32, 100],
+    pathIndex: Types.i32,        // текущий индекс в пути
+    pathLength: Types.i32,       // общая длина пути
+});
