@@ -46,8 +46,8 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
 
             MobComponent.name[eid] = MobComponent.name[spawnId];
 
-            const currentX = PositionComponent.x[spawnId] + radius * Math.cos(0);
-            const currentZ = PositionComponent.z[spawnId] + radius * Math.sin(0);
+            const currentX = PositionComponent.x[spawnId];
+            const currentZ = PositionComponent.z[spawnId];
 
             PositionComponent.x[eid] = currentX;
             PositionComponent.y[eid] = PositionComponent.y[spawnId];

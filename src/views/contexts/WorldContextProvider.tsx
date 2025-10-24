@@ -3,13 +3,16 @@ import {LevelData} from "../../types/LevelData.tsx";
 import {createLevel} from "../../logic/createLevel.ts";
 import {pipe} from "bitecs";
 import {timeSystem} from "../../logic/systems/timeSystem.ts";
-import {movementSystem} from "../../logic/systems/movementSystem.ts";
 import {useFrame} from "@react-three/fiber";
 import {WorldContext} from "./WorldContext.tsx";
 import {spawnMobsSystem} from "../../logic/systems/spawnMobsSystem.ts";
 import {selectCellSystem} from "../../logic/systems/selectCellSystem.ts";
 import {astarPathSystem} from "../../logic/systems/astarPathSystem.ts";
 import {decisionSystem} from "../../logic/systems/decisionSystem.ts";
+import {collisionAvoidanceSystem} from "../../logic/systems/collisionAvoidanceSystem.ts";
+import {spatialGridSystem} from "../../logic/systems/spatialGridSystem.ts";
+import {physicsMovementSystem} from "../../logic/systems/physicsMovementSystem.ts";
+import {cleanupSystem} from "../../logic/systems/cleanupSystem.ts";
 
 export function WorldContextProvider({
                                          children,
@@ -17,21 +20,23 @@ export function WorldContextProvider({
                                      }: PropsWithChildren<{ levelData: LevelData }>) {
     const world = createLevel(levelData);
 
-    // pathfindingSystem(world);
-    // astarPathSystem(world);
-
     const pipeline = pipe(
         timeSystem,
-        // spawnSystem,
         spawnMobsSystem,
         selectCellSystem,
-        // steeringSystem,
-        // circlePathSystem,
+        // Система для построения spatial grid
+        spatialGridSystem,
+        // AI системы
         decisionSystem,
+        // Рассчитываем пути
         astarPathSystem,
-        movementSystem,
+        // Избегание столкновений
+        collisionAvoidanceSystem,
+        // Движение через физику
+        physicsMovementSystem,
 
-        // damageSystem
+        // Очистка
+        cleanupSystem
     );
 
     useFrame(() => {

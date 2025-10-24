@@ -1,16 +1,12 @@
 import {Suspense, useRef} from "react";
-import {Box, Environment, PerspectiveCamera, Plane, Sky, Stats} from '@react-three/drei';
+import { Environment, PerspectiveCamera, Plane, Sky, Stats} from '@react-three/drei';
 import {Perf} from 'r3f-perf';
 import {Physics, RigidBody} from '@react-three/rapier';
-
-// import {Cars} from "./Cars";
 import {useLoaderData} from "@tanstack/react-router";
-import {Health} from "./Health.tsx";
-import {Mobs} from "./Mobs.tsx";
-// import {useControls} from "leva";
-import Light from "./Light.tsx";
 import {WorldContextProvider} from "../contexts/WorldContextProvider.tsx";
 import CameraController from "./CameraController.tsx";
+import {Mobs} from "./Mobs.tsx";
+import Light from "./Light.tsx";
 import Grid from "./Grid.tsx";
 
 export function Game() {

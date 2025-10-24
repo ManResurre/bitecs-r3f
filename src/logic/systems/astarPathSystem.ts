@@ -1,36 +1,44 @@
 import {defineSystem} from "bitecs";
 import {mobsQuery} from "../queries";
 import {CustomWorld} from "../../types";
-import {AStarPathMovementComponent, SelectedCellComponent, VelocityComponent} from "../components";
+import {AStarPathMovementComponent, PositionComponent, SelectedCellComponent, VelocityComponent} from "../components";
 import {getCurrentPathPoint} from "./decisionSystem.ts";
+import {CELL_SIZE} from "./selectCellSystem.ts";
 
 const MOVEMENT_SPEED = 0.5;
 const DISTANCE_THRESHOLD = 0.1;
 
-function calculateDirection(fromX: number, fromY: number, toX: number, toY: number) {
-    const direction = {
-        x: toX - fromX,
-        y: toY - fromY
-    };
+// Функция для преобразования координат сетки в мировые координаты
+function gridToWorld(i: number, j: number, worldSize: {width: number, height: number}) {
+    const x = i * CELL_SIZE - (worldSize.height * CELL_SIZE) / 2;
+    const z = -(j * CELL_SIZE - (worldSize.width * CELL_SIZE) / 2);
+    return { x, z };
+}
 
-    const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
+// Функция для расчета направления движения
+function calculateDirection(fromX: number, fromZ: number, toX: number, toZ: number) {
+    const dx = toX - fromX;
+    const dz = toZ - fromZ;
+
+    const length = Math.sqrt(dx * dx + dz * dz);
 
     if (length <= DISTANCE_THRESHOLD) {
-        return {x: 0, y: 0, length: 0};
+        return {x: 0, z: 0, length: 0};
     }
 
     return {
-        x: direction.x / length,
-        y: direction.y / length,
+        x: dx / length,
+        z: dz / length,
         length
     };
 }
 
+// Функция для перехода к следующей точке пути
 function moveToNextPathPoint(eid: number): boolean {
     const nextIndex = AStarPathMovementComponent.pathIndex[eid] + 1;
-    const length = AStarPathMovementComponent.pathLength[eid];
+    const pathLength = AStarPathMovementComponent.pathLength[eid];
 
-    if (nextIndex < length) {
+    if (nextIndex < pathLength) {
         AStarPathMovementComponent.pathIndex[eid] = nextIndex;
         return true;
     }
@@ -40,16 +48,22 @@ function moveToNextPathPoint(eid: number): boolean {
 export const astarPathSystem = defineSystem((world: CustomWorld) => {
     const mobs = mobsQuery(world);
 
-    // Система движения
     for (const eid of mobs) {
         if (AStarPathMovementComponent.movement[eid] <= 0) continue;
 
-        const currentX = SelectedCellComponent.x[eid];
-        const currentY = SelectedCellComponent.y[eid];
-        const targetX = AStarPathMovementComponent.target.x[eid];
-        const targetY = AStarPathMovementComponent.target.y[eid];
+        // Получаем текущую позицию в мировых координатах
+        const currentWorldX = PositionComponent.x[eid];
+        const currentWorldZ = PositionComponent.z[eid];
 
-        const direction = calculateDirection(currentX, currentY, targetX, targetY);
+        // Получаем целевую точку пути в координатах сетки
+        const targetGridX = AStarPathMovementComponent.target.x[eid];
+        const targetGridY = AStarPathMovementComponent.target.y[eid];
+
+        // Преобразуем целевую точку в мировые координаты
+        const targetWorld = gridToWorld(targetGridX, targetGridY, world.size);
+
+        // Вычисляем направление движения в мировых координатах
+        const direction = calculateDirection(currentWorldX, currentWorldZ, targetWorld.x, targetWorld.z);
 
         if (direction.length === 0) {
             // Достигли текущей целевой точки - переходим к следующей
@@ -62,6 +76,7 @@ export const astarPathSystem = defineSystem((world: CustomWorld) => {
                     AStarPathMovementComponent.target.x[eid] = nextPoint.x;
                     AStarPathMovementComponent.target.y[eid] = nextPoint.y;
                 } else {
+                    // Если следующей точки нет, завершаем движение
                     AStarPathMovementComponent.movement[eid] = 0;
                     VelocityComponent.x[eid] = 0;
                     VelocityComponent.z[eid] = 0;
@@ -73,21 +88,26 @@ export const astarPathSystem = defineSystem((world: CustomWorld) => {
                 VelocityComponent.z[eid] = 0;
 
                 // Проверяем, достигли ли финальной цели
-                const finalX = AStarPathMovementComponent.finalTarget.x[eid];
-                const finalY = AStarPathMovementComponent.finalTarget.y[eid];
+                const finalGridX = AStarPathMovementComponent.finalTarget.x[eid];
+                const finalGridY = AStarPathMovementComponent.finalTarget.y[eid];
+
+                // Получаем текущую позицию в координатах сетки
+                const currentGridX = SelectedCellComponent.x[eid];
+                const currentGridY = SelectedCellComponent.y[eid];
+
                 const distanceToFinal = Math.sqrt(
-                    Math.pow(currentX - finalX, 2) + Math.pow(currentY - finalY, 2)
+                    Math.pow(currentGridX - finalGridX, 2) + Math.pow(currentGridY - finalGridY, 2)
                 );
 
                 if (distanceToFinal > DISTANCE_THRESHOLD) {
-                    // Не достигли финальной цели - возможно нужен перерасчет
+                    // Не достигли финальной цели - возможно нужен перерасчет пути
                     console.log(`Entity ${eid} не достиг финальной цели`);
                 }
             }
         } else {
             // Продолжаем движение к текущей точке
             VelocityComponent.x[eid] = direction.x * MOVEMENT_SPEED;
-            VelocityComponent.z[eid] = -direction.y * MOVEMENT_SPEED;
+            VelocityComponent.z[eid] = direction.z * MOVEMENT_SPEED;
         }
     }
 

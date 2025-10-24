@@ -6,10 +6,10 @@ import {
   RotationComponent,
   SpeedComponent,
   VelocityComponent,
-} from "../components";
-import { FlowComponent } from "../components/FlowComponent";
-import { DIRECTION } from "../components/GraphComponent";
-import { steeringSystem } from "./steeringSystem";
+} from "../../components";
+import { FlowComponent } from "../../components/FlowComponent.ts";
+import { DIRECTION } from "../../components/GraphComponent.ts";
+import { steeringSystem } from "../steeringSystem.ts";
 
 describe("The steering system", () => {
   it.each([

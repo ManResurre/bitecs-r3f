@@ -1,6 +1,6 @@
-import React, {useRef, useState} from "react";
+import React, {useRef, useMemo} from "react";
 import {ThreeElements, useFrame} from "@react-three/fiber";
-import {SelectedCellComponent} from "../../logic/components";
+import {AStarPathMovementComponent, SelectedCellComponent} from "../../logic/components";
 import {mobsQuery} from "../../logic/queries";
 import {useWorld} from "../hooks/useWorld.tsx";
 
@@ -20,19 +20,60 @@ const GridCell = ({
                       ...rest
                   }: GridCellProps) => {
     const world = useWorld();
-    const meshRef = useRef(null);
-    const [highlighted, setHighlighted] = useState(false);
+    const meshRef = useRef<THREE.Mesh>(null);
+    const materialRef = useRef<THREE.MeshBasicMaterial>(null);
+
+    // Кэшируем вычисления с useMemo
+    const cellData = useMemo(() => ({
+        row: rowIndex,
+        col: colIndex
+    }), [rowIndex, colIndex]);
 
     useFrame(() => {
+        if (!materialRef.current) return;
+        if (Math.floor(performance.now() / 16) % 3 !== 0) return;
+
         const mobs = mobsQuery(world);
-        setHighlighted(false)
-        mobs.some((mobId) => {
-            if (rowIndex === SelectedCellComponent.x[mobId] && colIndex == SelectedCellComponent.y[mobId]) {
-                setHighlighted(true)
-                return
+        let isHighlighted = false;
+        let isInPath = false;
+
+        // Используем for вместо some для лучшей производительности
+        for (let i = 0; i < mobs.length; i++) {
+            const mobId = mobs[i];
+
+            // Проверка выбранной ячейки
+            if (cellData.row === SelectedCellComponent.x[mobId] &&
+                cellData.col === SelectedCellComponent.y[mobId]) {
+                isHighlighted = true;
+                break; // Если нашли выделение, прерываем цикл
             }
-        })
-    })
+
+            // Проверка пути только если еще не нашли выделение
+            if (!isHighlighted) {
+                const pathLength = AStarPathMovementComponent.pathLength[mobId];
+                const pathXs = AStarPathMovementComponent.pathXs[mobId];
+                const pathYs = AStarPathMovementComponent.pathYs[mobId];
+
+                for (let j = 0; j < pathLength; j++) {
+                    if (pathXs[j] === cellData.row && pathYs[j] === cellData.col) {
+                        isInPath = true;
+                        break;
+                    }
+                }
+                if (isInPath) break;
+            }
+        }
+
+        // Обновляем цвет напрямую, избегая ререндеров
+        if (isHighlighted) {
+            // console.log(rowIndex, colIndex);
+            materialRef.current.color.setHex(0x00ff00);
+        } else if (isInPath) {
+            materialRef.current.color.setHex(0xff0000);
+        } else {
+            materialRef.current.color.setHex(0xffffff);
+        }
+    });
 
     return (
         <mesh
@@ -42,9 +83,10 @@ const GridCell = ({
         >
             <planeGeometry args={[size, size]}/>
             <meshBasicMaterial
-                color={highlighted ? 0x00ff00 : 0xffffff}
+                ref={materialRef}
                 transparent
                 opacity={0.5}
+                color={0xffffff}
             />
         </mesh>
     );

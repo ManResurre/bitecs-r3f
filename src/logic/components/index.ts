@@ -51,3 +51,9 @@ export const AStarPathMovementComponent = defineComponent({
     pathIndex: Types.i32,        // текущий индекс в пути
     pathLength: Types.i32,       // общая длина пути
 });
+
+export const RigidBodyComponent = {
+    // Мы не можем хранить объекты напрямую в ECS, поэтому используем ссылки по ID
+    // или синхронизируем через отдельную Map в мире
+    hasBody: Types.i8, // флаг что entity имеет физическое тело
+};
