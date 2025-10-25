@@ -71,7 +71,7 @@ const GridCell = ({
         } else if (isInPath) {
             materialRef.current.color.setHex(0xff0000);
         } else {
-            materialRef.current.color.setHex(0xffffff);
+            materialRef.current.color.setHex(0x000000);
         }
     });
 

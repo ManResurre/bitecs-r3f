@@ -57,3 +57,22 @@ export const RigidBodyComponent = {
     // или синхронизируем через отдельную Map в мире
     hasBody: Types.i8, // флаг что entity имеет физическое тело
 };
+
+export const ParticleComponent = defineComponent({
+    life: Types.f32,        // время жизни частицы
+    maxLife: Types.f32,     // максимальное время жизни
+    size: Types.f32,        // размер частицы
+    velocityX: Types.f32,   // скорость по X
+    velocityY: Types.f32,   // скорость по Y
+    velocityZ: Types.f32,   // скорость по Z
+    colorR: Types.f32,      // цвет R
+    colorG: Types.f32,      // цвет G
+    colorB: Types.f32,      // цвет B
+});
+
+export const ParticleEmitterComponent = defineComponent({
+    rate: Types.f32,        // частота испускания (частиц/секунду)
+    cooldown: Types.f32,    // кулдаун до следующего испускания
+    maxParticles: Types.ui16, // максимальное количество частиц
+    emitterType: Types.ui8,   // тип эмиттера (0 = точечный, 1 = сфера, 2 = конус)
+});

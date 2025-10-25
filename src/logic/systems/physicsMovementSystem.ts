@@ -17,14 +17,9 @@ export const physicsMovementSystem = defineSystem((world: CustomWorld) => {
                 z: VelocityComponent.z[eid]
             };
 
-            // Применяем скорость через физическое тело
             rigidBody.setLinvel(targetVelocity, true);
-
-            // НЕ синхронизируем PositionComponent здесь - это сделает компонент Mobs
-            // после того как физика обновит позицию
-
         } else {
-            // Fallback: прямое движение (для отладки)
+            // Отладка без физики
             PositionComponent.x[eid] += (VelocityComponent.x[eid] * world.time.delta) / 1000;
             PositionComponent.y[eid] += (VelocityComponent.y[eid] * world.time.delta) / 1000;
             PositionComponent.z[eid] += (VelocityComponent.z[eid] * world.time.delta) / 1000;

@@ -13,6 +13,8 @@ import {collisionAvoidanceSystem} from "../../logic/systems/collisionAvoidanceSy
 import {spatialGridSystem} from "../../logic/systems/spatialGridSystem.ts";
 import {physicsMovementSystem} from "../../logic/systems/physicsMovementSystem.ts";
 import {cleanupSystem} from "../../logic/systems/cleanupSystem.ts";
+import {particleSystem} from "../../logic/systems/particleSystem.ts";
+import {particleEmitterSystem} from "../../logic/systems/particleEmitterSystem.ts";
 
 export function WorldContextProvider({
                                          children,
@@ -34,6 +36,9 @@ export function WorldContextProvider({
         collisionAvoidanceSystem,
         // Движение через физику
         physicsMovementSystem,
+
+        particleEmitterSystem, // ← добавляем систему эмиттера
+        particleSystem,        // ← добавляем систему обновления частиц
 
         // Очистка
         cleanupSystem

@@ -1,7 +1,7 @@
 import {createWorld, addEntity, addComponent, IWorld} from "bitecs";
 import {
     PositionComponent,
-    SpawnComponent, MobComponent,
+    SpawnComponent, MobComponent, ParticleEmitterComponent,
 } from "./components";
 import {LevelData} from "../types/LevelData";
 import {RapierRigidBody} from "@react-three/rapier";
@@ -22,6 +22,7 @@ export function createLevel(levelData: LevelData) {
     }) as CustomWorld;
 
     setSpawnMobs(levelData.mobs, world);
+    createRainEmitter(world);
 
     return world;
 }
@@ -43,4 +44,22 @@ export function setSpawnMobs(mobs: LevelData["mobs"], world: IWorld) {
 
         MobComponent.name[eid] = textEncoder.encode(mobs[i].name);
     }
+}
+
+export function createRainEmitter(world: CustomWorld) {
+    const emitterEid = addEntity(world);
+
+    addComponent(world, PositionComponent, emitterEid);
+    addComponent(world, ParticleEmitterComponent, emitterEid);
+
+    // Позиция эмиттера (над сценой)
+    PositionComponent.x[emitterEid] = 0;
+    PositionComponent.y[emitterEid] = 5;
+    PositionComponent.z[emitterEid] = 0;
+
+    // Настройки эмиттера
+    ParticleEmitterComponent.rate[emitterEid] = 50; // 50 частиц в секунду
+    ParticleEmitterComponent.cooldown[emitterEid] = 0;
+    ParticleEmitterComponent.maxParticles[emitterEid] = 500;
+    ParticleEmitterComponent.emitterType[emitterEid] = 0; // точечный эмиттер
 }
