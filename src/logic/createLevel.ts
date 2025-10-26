@@ -4,7 +4,6 @@ import {
     SpawnComponent, MobComponent, ParticleEmitterComponent,
 } from "./components";
 import {LevelData} from "../types/LevelData";
-import {RapierRigidBody} from "@react-three/rapier";
 import {CustomWorld} from "../types";
 
 const textEncoder = new TextEncoder();

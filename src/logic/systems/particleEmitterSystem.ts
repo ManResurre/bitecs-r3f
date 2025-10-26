@@ -43,7 +43,7 @@ export const particleEmitterSystem = defineSystem((world: CustomWorld) => {
 
                 // Скорость (падающий дождь)
                 ParticleComponent.velocityX[particleEid] = (Math.random() - 0.5) * 0.1;
-                ParticleComponent.velocityY[particleEid] = -2.0 - Math.random() * 1.0; // вниз
+                ParticleComponent.velocityY[particleEid] = -2.0 - Math.random() * 15.0; // вниз
                 ParticleComponent.velocityZ[particleEid] = (Math.random() - 0.5) * 0.1;
 
                 // Цвет (синий для дождя)

@@ -10,7 +10,7 @@ const Light = () => {
     const targetRef = useRef<Object3D>(null);
 
     useHelper(dr as RefObject<DirectionalLight>, DirectionalLightHelper, 1, "red");
-    const {intensity, x, y, z, targetX, targetY, targetZ} = useControls('Light', {
+    const {intensity, x, y, z, targetX, targetY, targetZ, color} = useControls('Light', {
         intensity: {value: 1, min: 0, max: 5},
         x: {value: 10, min: -10, max: 10},
         y: {value: 10, min: -10, max: 10},
@@ -18,6 +18,7 @@ const Light = () => {
         targetX: {value: 0, min: -10, max: 10},
         targetY: {value: 0, min: -10, max: 10},
         targetZ: {value: 0, min: -10, max: 10},
+        color: { value: "#8da6cb" } // Холодный синий цвет лунного света
     })
 
     useEffect(() => {
@@ -47,6 +48,7 @@ const Light = () => {
 
         <directionalLight
             ref={dr}
+            color={color}
             position={[x, y, z]}
             castShadow
             intensity={intensity}
@@ -57,6 +59,7 @@ const Light = () => {
             shadow-camera-bottom={-20}
             shadow-camera-near={0.1}
             shadow-camera-far={40}
+            shadow-bias={-0.0005}
         >
             <object3D ref={targetRef}/>
         </directionalLight>
