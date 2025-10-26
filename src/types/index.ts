@@ -1,5 +1,6 @@
 import {IWorld} from "bitecs";
 import {RapierRigidBody} from "@react-three/rapier";
+import {CostTable, NavMesh} from "yuka";
 
 export type WithTime<T extends IWorld> = T & {
     time: {
@@ -20,4 +21,9 @@ export type WithRigidBody<T extends IWorld> = T & {
     rigidBodies: Map<number, RapierRigidBody>;
 };
 
-export type CustomWorld = WithRigidBody<WithTime<WithBoundaries<IWorld>>>;
+export type WithNavMesh<T extends IWorld> = T & {
+    navMesh?: NavMesh;
+    costTable?: CostTable
+};
+
+export type CustomWorld = WithNavMesh<WithRigidBody<WithTime<WithBoundaries<IWorld>>>>;

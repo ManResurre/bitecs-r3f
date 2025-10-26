@@ -8,6 +8,9 @@ import {NavMesh} from "yuka";
 import {NPC} from "./NPC.tsx";
 import {NavMeshDebug} from "./NavigationDebug.tsx";
 import NavigationMesh from "./NavigationMesh.tsx";
+import {Mobs} from "./Mobs.tsx";
+import {Physics, RigidBody} from "@react-three/rapier";
+import Light from "./Light.tsx";
 
 export function Game() {
     const rbRef = useRef(null);
@@ -71,7 +74,7 @@ export function Game() {
                     {/* Дополнительное ночное освещение */}
                     {/*<ambientLight intensity={0.05} color="#1a2b5f"/>*/}
 
-                    {/*<Light/>*/}
+                    <Light/>
 
                     {/*<Ground/>*/}
                     {/*<fog attach="fog" color={0x0a0a1a} far={20} />*/}
@@ -91,8 +94,8 @@ export function Game() {
 
                     {/*<fog attach="fog" args={['#6d7b88', 3, 15]}/>*/}
 
-                    {/*<Physics debug gravity={[0, -1, 0]}>*/}
-                    {/*    <RigidBody position={[0, 0, 0]} ref={rbRef} type="fixed" colliders="trimesh">*/}
+                    <Physics debug gravity={[0, -1, 0]}>
+                        <RigidBody position={[0, 0, 0]} ref={rbRef} type="fixed" colliders="trimesh">
                     {/*        /!*<Plane*!/*/}
                     {/*        /!*    ref={planeRef}*!/*/}
                     {/*        /!*    args={[35, 35]}*!/*/}
@@ -104,10 +107,11 @@ export function Game() {
                     {/*        /!*    <AdvancedRainMaterial/>*!/*/}
                     {/*        /!*</Plane>*!/*/}
                     {/*        <Floor/>*/}
-                    {/*    </RigidBody>*/}
+                            <Level/>
+                        </RigidBody>
                     {/*    /!*<Box castShadow position={[-2, 1, 0]}/>*!/*/}
-                    {/*    <Mobs/>*/}
-                    {/*</Physics>*/}
+                        <Mobs/>
+                    </Physics>
                     {/*<Grid position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}/>*/}
 
 
@@ -119,20 +123,20 @@ export function Game() {
                         <meshStandardMaterial metalness={1} roughness={0.5}/>
                     </mesh>
 
-                    <Level/>
-                    <NavigationMesh onNavMeshLoaded={handleNavMeshLoaded}/>
-                    {navMesh && <>
-                        <NPC navMesh={navMesh}/>
-                        <NPC navMesh={navMesh}/>
-                        <NPC navMesh={navMesh}/>
-                        <NPC navMesh={navMesh}/>
-                        <NPC navMesh={navMesh}/>
-                        <NPC navMesh={navMesh}/>
-                        <NPC navMesh={navMesh}/>
-                        <NavMeshDebug navMesh={navMesh}/>
-                    </>
-                    }
 
+                    {/*<NavigationMesh onNavMeshLoaded={handleNavMeshLoaded}/>*/}
+                    {/*{navMesh && <>*/}
+                    {/*    <NPC navMesh={navMesh}/>*/}
+                    {/*    <NPC navMesh={navMesh}/>*/}
+                    {/*    <NPC navMesh={navMesh}/>*/}
+                    {/*    <NPC navMesh={navMesh}/>*/}
+                    {/*    <NPC navMesh={navMesh}/>*/}
+                    {/*    <NPC navMesh={navMesh}/>*/}
+                    {/*    <NPC navMesh={navMesh}/>*/}
+                    {/*    <NavMeshDebug navMesh={navMesh}/>*/}
+                    {/*</>*/}
+                    {/*}*/}
+                    <NavMeshDebug/>
 
                     <Stats className="stats"/>
                     <Perf position={"bottom-right"}/>

@@ -1,4 +1,3 @@
-// Mobs.tsx
 import {useFrame} from "@react-three/fiber";
 import {CuboidCollider, RapierRigidBody, RigidBody} from "@react-three/rapier";
 import {useCallback, useEffect, useState} from "react";
@@ -10,7 +9,7 @@ import {enterQuery, exitQuery} from "bitecs";
 
 export function Mobs() {
     const world = useWorld();
-    const [, setForceUpdate] = useState(0);
+    const [update, setForceUpdate] = useState(false);
 
     // Callback для установки RigidBody в мир
     const setRigidBodyRef = useCallback((eid: number) => (ref: RapierRigidBody | null) => {
@@ -33,7 +32,7 @@ export function Mobs() {
 
         // Форсируем перерисовку при изменениях
         if (newMobs.length || oldMobs.length) {
-            setForceUpdate(prev => prev + 1);
+            setForceUpdate(!update);
         }
 
         // Синхронизируем позиции RigidBody с ECS (физика -> визуал)

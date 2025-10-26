@@ -9,7 +9,7 @@ import {mobsQuery, spawnMobsQuery} from "../queries";
 import {
     AStarPathMovementComponent,
     CircleMovementComponent,
-    MobComponent,
+    MobComponent, PathMovementComponent,
     PositionComponent,
     RotationComponent, SelectedCellComponent,
     SpawnComponent,
@@ -43,6 +43,7 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
             addComponent(world, SelectedCellComponent, eid);
             addComponent(world, CircleMovementComponent, eid);
             addComponent(world, AStarPathMovementComponent, eid);
+            addComponent(world, PathMovementComponent, eid);
 
             MobComponent.name[eid] = MobComponent.name[spawnId];
 
@@ -67,6 +68,7 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
             CircleMovementComponent.angularSpeed[eid] = 0.2;
 
             AStarPathMovementComponent.timeToNextThink[eid] = 5000;
+            PathMovementComponent.timeToNextThink[eid] = 5000;
         }
 
 

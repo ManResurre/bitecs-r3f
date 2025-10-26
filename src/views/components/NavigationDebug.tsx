@@ -1,9 +1,12 @@
 import {useEffect, useRef} from 'react';
-import * as THREE from 'three';
-import {NavMesh, Vector3} from "yuka";
+import {Vector3} from "yuka";
+import {useWorld} from "../hooks/useWorld.tsx";
+import {BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial} from "three";
 
-export const NavMeshDebug = ({navMesh}: { navMesh: NavMesh | null }) => {
-    const debugRef = useRef<THREE.Group>(null);
+export const NavMeshDebug = () => {
+    const {navMesh} = useWorld();
+
+    const debugRef = useRef<Group>(null);
 
     useEffect(() => {
         if (!navMesh || !debugRef.current) return;
@@ -39,19 +42,19 @@ export const NavMeshDebug = ({navMesh}: { navMesh: NavMesh | null }) => {
                 indices.push(0, i, i + 1);
             }
 
-            const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const geometry = new BufferGeometry();
+            geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
             geometry.setIndex(indices);
 
-            const material = new THREE.MeshBasicMaterial({
-                color: new THREE.Color().setHSL(regionIndex / navMesh.regions.length, 0.8, 0.5),
+            const material = new MeshBasicMaterial({
+                color: new Color().setHSL(regionIndex / navMesh.regions.length, 0.8, 0.5),
                 wireframe: true,
                 transparent: true,
                 opacity: 0.6,
-                side: THREE.DoubleSide
+                side: DoubleSide
             });
 
-            const mesh = new THREE.Mesh(geometry, material);
+            const mesh = new Mesh(geometry, material);
             debugRef.current!.add(mesh);
         });
 

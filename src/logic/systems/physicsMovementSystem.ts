@@ -10,6 +10,12 @@ export const physicsMovementSystem = defineSystem((world: CustomWorld) => {
         const rigidBody = world.rigidBodies.get(eid);
 
         if (rigidBody) {
+            if (VelocityComponent.x[eid] === 0 &&
+                VelocityComponent.y[eid] === 0 &&
+                VelocityComponent.z[eid] === 0) {
+                return;
+            }
+
             // Используем физику для движения
             const targetVelocity = {
                 x: VelocityComponent.x[eid],

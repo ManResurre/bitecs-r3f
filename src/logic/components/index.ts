@@ -48,6 +48,18 @@ export const AStarPathMovementComponent = defineComponent({
     movement: Types.i8,
     pathXs: [Types.i32, 100],
     pathYs: [Types.i32, 100],
+    pathZs: [Types.i32, 100],
+    pathIndex: Types.i32,        // текущий индекс в пути
+    pathLength: Types.i32,       // общая длина пути
+});
+
+export const PathMovementComponent = defineComponent({
+    timeToNextThink: Types.i16,
+    target: Vector3,
+    movement: Types.i8,
+    pathXs: [Types.f32, 100],
+    pathYs: [Types.f32, 100],
+    pathZs: [Types.f32, 100],
     pathIndex: Types.i32,        // текущий индекс в пути
     pathLength: Types.i32,       // общая длина пути
 });

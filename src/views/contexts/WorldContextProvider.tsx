@@ -15,6 +15,8 @@ import {physicsMovementSystem} from "../../logic/systems/physicsMovementSystem.t
 import {cleanupSystem} from "../../logic/systems/cleanupSystem.ts";
 import {particleSystem} from "../../logic/systems/particleSystem.ts";
 import {particleEmitterSystem} from "../../logic/systems/particleEmitterSystem.ts";
+import {loadNavMeshSystem} from "../../logic/systems/loadNavMeshSystem.ts";
+import {pathFindSystem} from "../../logic/systems/pathFindSystem.ts";
 
 export function WorldContextProvider({
                                          children,
@@ -22,23 +24,26 @@ export function WorldContextProvider({
                                      }: PropsWithChildren<{ levelData: LevelData }>) {
     const world = createLevel(levelData);
 
+    loadNavMeshSystem(world);
+
     const pipeline = pipe(
         timeSystem,
         spawnMobsSystem,
-        selectCellSystem,
+        pathFindSystem,
+        // selectCellSystem,
         // Система для построения spatial grid
-        spatialGridSystem,
+        // spatialGridSystem,
         // AI системы
-        decisionSystem,
+        // decisionSystem,
         // Рассчитываем пути
-        astarPathSystem,
+        // astarPathSystem,
         // Избегание столкновений
-        collisionAvoidanceSystem,
+        // collisionAvoidanceSystem,
         // Движение через физику
         physicsMovementSystem,
 
-        particleEmitterSystem, // ← добавляем систему эмиттера
-        particleSystem,        // ← добавляем систему обновления частиц
+        // particleEmitterSystem, // ← добавляем систему эмиттера
+        // particleSystem,        // ← добавляем систему обновления частиц
 
         // Очистка
         cleanupSystem

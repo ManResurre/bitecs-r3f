@@ -17,7 +17,7 @@ export function createLevel(levelData: LevelData) {
             width: 20,
             height: 20,
         },
-        rigidBodies: new Map()
+        rigidBodies: new Map(),
     }) as CustomWorld;
 
     setSpawnMobs(levelData.mobs, world);
