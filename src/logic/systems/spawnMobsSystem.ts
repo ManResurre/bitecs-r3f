@@ -57,6 +57,8 @@ export const spawnMobsSystem = defineSystem((world: CustomWorld) => {
 
         }
 
+        // console.log(mobs.length);
+
 
         // if (
         //     SpawnComponent.cooldown[spawnId] <= 0 &&

@@ -35,7 +35,6 @@ export class FollowPathGoal extends Goal<Mob> {
             followPathBehavior.path.add(waypoint);
         }
 
-        console.log(`Mob ${owner.eid}: Following path with ${path.length} waypoints`);
     }
 
     execute(): void {
@@ -52,7 +51,6 @@ export class FollowPathGoal extends Goal<Mob> {
 
         // Проверяем, достигли ли конечной точки пути
         if (owner.atPosition(path[path.length - 1])) {
-            console.log(`Mob ${owner.eid}: Reached destination`);
             this.status = Goal.STATUS.COMPLETED;
         }
     }
@@ -70,6 +68,5 @@ export class FollowPathGoal extends Goal<Mob> {
         followPathBehavior.active = false;
         onPathBehavior.active = false;
 
-        console.log(`Mob ${owner.eid}: FollowPathGoal terminated`);
     }
 }

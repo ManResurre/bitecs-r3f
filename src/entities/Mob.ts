@@ -11,7 +11,7 @@ export class Mob extends Vehicle {
 
     currentTime = 0;
 
-    currentRegion?: Polygon;
+    currentRegion: Polygon | null = null; // Меняем на null вместо undefined
     currentPosition = new Vector3();
     previousPosition = new Vector3();
 
@@ -29,6 +29,9 @@ export class Mob extends Vehicle {
         this.name = `mob_${eid}`;
         this.world = world;
         this.navMesh = world.navMesh!;
+
+        // Устанавливаем начальную позицию на случайном регионе navMesh
+        this.initializePosition();
 
         // goal-driven agent design
         this.brain.addEvaluator(new ExploreEvaluator());
@@ -50,27 +53,59 @@ export class Mob extends Vehicle {
         this.steering.add(onPathBehavior);
     }
 
-    stayInLevel() {
-        if (!this.currentRegion) {
+    // Новый метод для инициализации позиции
+    private initializePosition(): void {
+        if (!this.navMesh) {
+            console.warn(`Mob ${this.eid}: NavMesh not available for position initialization`);
             return;
         }
 
+        // Получаем случайный регион и устанавливаем позицию
+        const region = this.navMesh.getRandomRegion();
+        if (region) {
+            this.position.copy(region.centroid);
+            this.currentRegion = region;
+            this.previousPosition.copy(this.position);
+            this.initialized = true;
+            console.log(`Mob ${this.eid}: Initialized at position`, this.position);
+        } else {
+            console.error(`Mob ${this.eid}: Could not find random region for initialization`);
+        }
+    }
+
+    stayInLevel() {
+        // Если региона нет, пытаемся найти его для текущей позиции
+        if (!this.currentRegion) {
+            this.currentRegion = this.navMesh.getRegionForPoint(this.position, 1);
+            if (!this.currentRegion) {
+                console.warn(`Mob ${this.eid}: No current region, skipping stayInLevel`);
+                return this;
+            }
+        }
+
         this.currentPosition.copy(this.position);
+
         const newRegion = this.navMesh.clampMovement(
             this.currentRegion,
             this.previousPosition,
             this.currentPosition,
-            this.position // this is the result vector that gets clamped
+            this.position
         );
 
-        // Защита от потери региона
+        // Обновляем регион
         if (newRegion) {
             this.currentRegion = newRegion;
+        } else {
+            console.warn(`Mob ${this.eid}: clampMovement returned null region`);
         }
 
         this.previousPosition.copy(this.position);
-        const distance = this.currentRegion.plane.distanceToPoint(this.position);
-        this.position.y -= distance * CONFIG.NAVMESH.HEIGHT_CHANGE_FACTOR; // smooth transition
+
+        // Корректируем высоту
+        if (this.currentRegion) {
+            const distance = this.currentRegion.plane.distanceToPoint(this.position);
+            this.position.y -= distance * CONFIG.NAVMESH.HEIGHT_CHANGE_FACTOR;
+        }
 
         return this;
     }
@@ -78,21 +113,27 @@ export class Mob extends Vehicle {
     update(delta: number): this {
         super.update(delta);
 
-        if (!this.navMesh)
+        // Убедимся, что navMesh доступен
+        if (!this.navMesh) {
+            console.warn(`Mob ${this.eid}: No navMesh available`);
             return this;
-        // this.currentTime += delta;
-        // this.goalArbitrationRegulator.update(delta);
-
-        // Инициализируем при первом update, когда позиция установлена
-        if (!this.initialized && !this.currentRegion) {
-            this.currentRegion = this.navMesh.getRegionForPoint(this.position, 1);
-            this.initialized = true;
         }
+
+        // Инициализируем при первом update, если еще не инициализированы
+        if (!this.initialized) {
+            this.currentRegion = this.navMesh.getRegionForPoint(this.position, 1);
+            if (this.currentRegion) {
+                this.initialized = true;
+                console.log(`Mob ${this.eid}: Initialized in update`);
+            }
+        }
+
         this.stayInLevel();
 
         // update goals
         this.brain.execute();
         if (this.goalArbitrationRegulator.ready()) {
+            console.log(`Mob ${this.eid}: Performing arbitration`);
             this.brain.arbitrate();
         }
 

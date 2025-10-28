@@ -27,7 +27,7 @@ const CONFIG = {
             DODGE_SIZE: 4 // meter
         },
         GOAL: {
-            UPDATE_FREQUENCY: 0.1, // number per seconds
+            UPDATE_FREQUENCY: 1/5, // number per seconds
             ITEM_VISIBILITY_UPDATE_FREQUENCY: 1 // number per seconds
         },
         MEMORY: {

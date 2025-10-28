@@ -18,7 +18,7 @@ const Light = () => {
         targetX: {value: 0, min: -10, max: 10},
         targetY: {value: 0, min: -10, max: 10},
         targetZ: {value: 0, min: -10, max: 10},
-        color: { value: "#8da6cb" } // Холодный синий цвет лунного света
+        color: { value: "#ffffff" } // Холодный синий цвет лунного света
     })
 
     useEffect(() => {

@@ -1,4 +1,4 @@
-import {CompositeGoal, Goal, Vector3} from 'yuka';
+import {CompositeGoal, Vector3} from 'yuka';
 import {FindPathGoal} from './FindPathGoal';
 import {FollowPathGoal} from './FollowPathGoal';
 import {Mob} from '../../entities/Mob';
@@ -13,16 +13,12 @@ export class ExploreGoal extends CompositeGoal<Mob> {
         if (!this.owner || !this.owner.world.navMesh)
             return;
 
-        console.log(`Mob ${this.owner.eid}: ExploreGoal activated`);
-
         this.clearSubgoals();
 
         // Получаем случайную позицию на карте
         const region = this.owner.world.navMesh.getRandomRegion();
         const from = new Vector3().copy(this.owner.position);
         const to = new Vector3().copy(region.centroid);
-
-        console.log(`Mob ${this.owner.eid}: Exploring to`, to);
 
         // Настраиваем подцели
         this.addSubgoal(new FindPathGoal(this.owner, from, to));
@@ -41,7 +37,6 @@ export class ExploreGoal extends CompositeGoal<Mob> {
         if (!this.owner)
             return;
 
-        console.log(`Mob ${this.owner.eid}: ExploreGoal terminated`);
         this.clearSubgoals();
     }
 }

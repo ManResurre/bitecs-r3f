@@ -5,9 +5,7 @@ import {useLoaderData} from "@tanstack/react-router";
 import {WorldContextProvider} from "../contexts/WorldContextProvider.tsx";
 import Level from "./Level.tsx";
 import {NavMesh} from "yuka";
-import {NPC} from "./NPC.tsx";
 import {NavMeshDebug} from "./NavigationDebug.tsx";
-import NavigationMesh from "./NavigationMesh.tsx";
 import {Mobs} from "./Mobs.tsx";
 import {Physics, RigidBody} from "@react-three/rapier";
 import Light from "./Light.tsx";
@@ -45,11 +43,11 @@ export function Game() {
                     {/*    castShadow*/}
                     {/*/>*/}
 
-                    <Environment
-                        // preset="city"
-                        files="./vignaioli_night_4k.hdr"
-                        environmentIntensity={0.15}
-                    />
+                    {/*<Environment*/}
+                    {/*    // preset="city"*/}
+                    {/*    files="./vignaioli_night_4k.hdr"*/}
+                    {/*    environmentIntensity={0.15}*/}
+                    {/*/>*/}
 
                     {/*<Sky*/}
                     {/*    distance={450000}*/}
@@ -124,19 +122,6 @@ export function Game() {
                     {/*    <meshStandardMaterial metalness={1} roughness={0.5}/>*/}
                     {/*</mesh>*/}
 
-
-                    {/*<NavigationMesh onNavMeshLoaded={handleNavMeshLoaded}/>*/}
-                    {/*{navMesh && <>*/}
-                    {/*    <NPC navMesh={navMesh}/>*/}
-                    {/*    <NPC navMesh={navMesh}/>*/}
-                    {/*    <NPC navMesh={navMesh}/>*/}
-                    {/*    <NPC navMesh={navMesh}/>*/}
-                    {/*    <NPC navMesh={navMesh}/>*/}
-                    {/*    <NPC navMesh={navMesh}/>*/}
-                    {/*    <NPC navMesh={navMesh}/>*/}
-                    {/*    <NavMeshDebug navMesh={navMesh}/>*/}
-                    {/*</>*/}
-                    {/*}*/}
                     <NavMeshDebug/>
 
                     <Stats className="stats"/>
