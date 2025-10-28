@@ -2,11 +2,11 @@ import {defineQuery, enterQuery, exitQuery} from "bitecs";
 import {
     ColorComponent, HealthComponent, MobComponent, ParticleComponent, ParticleEmitterComponent,
     PositionComponent,
-    RotationComponent, SelectedCellComponent,
+    RotationComponent,
     SpawnComponent,
     SpeedComponent,
     TileComponent,
-    VelocityComponent,
+    VelocityComponent, YukaEntityComponent,
 } from "../components";
 import {FlowComponent} from "../components/FlowComponent";
 import {GraphComponent} from "../components/GraphComponent";
@@ -41,7 +41,6 @@ export const spawnQuery = defineQuery([
 export const spawnMobsQuery = defineQuery([
     PositionComponent,
     SpawnComponent,
-    MobComponent
 ]);
 
 export const enterSpawnQuery = enterQuery(spawnQuery);
@@ -53,11 +52,13 @@ export const carsQuery = defineQuery([
 ]);
 
 export const mobsQuery = defineQuery([
-    PositionComponent,
-    RotationComponent,
     MobComponent,
-    SelectedCellComponent
+    YukaEntityComponent
 ]);
+
+export const yukaQuery = defineQuery([
+    YukaEntityComponent
+])
 
 export const enterCarsQuery = enterQuery(carsQuery);
 

@@ -94,7 +94,7 @@ export function Game() {
 
                     {/*<fog attach="fog" args={['#6d7b88', 3, 15]}/>*/}
 
-                    <Physics debug gravity={[0, -1, 0]}>
+                    <Physics gravity={[0, -1, 0]}>
                         <RigidBody position={[0, 0, 0]} ref={rbRef} type="fixed" colliders="trimesh">
                     {/*        /!*<Plane*!/*/}
                     {/*        /!*    ref={planeRef}*!/*/}
@@ -110,18 +110,19 @@ export function Game() {
                             <Level/>
                         </RigidBody>
                     {/*    /!*<Box castShadow position={[-2, 1, 0]}/>*!/*/}
-                        <Mobs/>
+
                     </Physics>
+                    <Mobs/>
                     {/*<Grid position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}/>*/}
 
 
                     {/*<UnifiedScene/>*/}
 
                     {/*<Particles/>*/}
-                    <mesh position={[0, 1, 0]}>
-                        <sphereGeometry args={[1, 32, 32]}/>
-                        <meshStandardMaterial metalness={1} roughness={0.5}/>
-                    </mesh>
+                    {/*<mesh position={[0, 1, 0]}>*/}
+                    {/*    <sphereGeometry args={[1, 32, 32]}/>*/}
+                    {/*    <meshStandardMaterial metalness={1} roughness={0.5}/>*/}
+                    {/*</mesh>*/}
 
 
                     {/*<NavigationMesh onNavMeshLoaded={handleNavMeshLoaded}/>*/}

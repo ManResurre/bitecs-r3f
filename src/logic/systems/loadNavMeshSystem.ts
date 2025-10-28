@@ -2,6 +2,7 @@ import {defineSystem} from "bitecs";
 import {CustomWorld} from "../../types";
 import {CostTable, NavMeshLoader} from "yuka";
 import {LoadingManager} from "three";
+import {PathPlanner} from "../etc/PathPlanner.ts";
 
 async function loadData(world: CustomWorld) {
     const loader = new NavMeshLoader();
@@ -17,6 +18,7 @@ async function loadData(world: CustomWorld) {
 
     world.navMesh = navMesh;
     world.costTable = costTable;
+    world.pathPlanner = new PathPlanner(navMesh);
 }
 
 export const loadNavMeshSystem = defineSystem((world: CustomWorld) => {

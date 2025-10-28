@@ -2,25 +2,26 @@ import {
     addComponent,
     addEntity,
     defineSystem,
-    IWorld,
-    removeEntity,
 } from "bitecs";
 import {mobsQuery, spawnMobsQuery} from "../queries";
 import {
-    AStarPathMovementComponent,
     CircleMovementComponent,
     MobComponent, PathMovementComponent,
     PositionComponent,
     RotationComponent, SelectedCellComponent,
     SpawnComponent,
     SpeedComponent,
-    VelocityComponent,
+    VelocityComponent, YukaEntityComponent,
 } from "../components";
-import {WithTime} from "../../types";
+import {CustomWorld} from "../../types";
+import {Mob} from "../../entities/Mob.ts";
 
-const radius = 5;
+const textEncoder = new TextEncoder();
 
-export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
+export const spawnMobsSystem = defineSystem((world: CustomWorld) => {
+    if (!world.navMesh)
+        return world;
+
     const spawnPoints = spawnMobsQuery(world);
 
     for (const spawnId of spawnPoints) {
@@ -42,33 +43,18 @@ export const spawnMobsSystem = defineSystem((world: WithTime<IWorld>) => {
             addComponent(world, MobComponent, eid);
             addComponent(world, SelectedCellComponent, eid);
             addComponent(world, CircleMovementComponent, eid);
-            addComponent(world, AStarPathMovementComponent, eid);
             addComponent(world, PathMovementComponent, eid);
+            addComponent(world, YukaEntityComponent, eid);
 
-            MobComponent.name[eid] = MobComponent.name[spawnId];
+            MobComponent.name[eid] = textEncoder.encode('zombie');
 
-            const currentX = PositionComponent.x[spawnId];
-            const currentZ = PositionComponent.z[spawnId];
-
-            PositionComponent.x[eid] = currentX;
-            PositionComponent.y[eid] = PositionComponent.y[spawnId];
-            PositionComponent.z[eid] = currentZ;
-
-            RotationComponent.y[eid] = Math.floor(Math.random() * 4);
-
-            SpeedComponent.maxSpeed[eid] = 0.5;
-            SpeedComponent.acceleration[eid] = 0.5;
+            //Добавляем Yuka Entity
+            const yukaEntity = new Mob(eid, world);
+            world.entityManager.add(yukaEntity);
+            YukaEntityComponent.entityId[eid] = textEncoder.encode(yukaEntity.name);
 
             SpawnComponent.cooldown[spawnId] += SpawnComponent.delay[spawnId];
 
-            CircleMovementComponent.angle[eid] = 0;
-            CircleMovementComponent.radius[eid] = radius;
-            CircleMovementComponent.centerX[eid] = PositionComponent.x[spawnId];
-            CircleMovementComponent.centerZ[eid] = PositionComponent.z[spawnId];
-            CircleMovementComponent.angularSpeed[eid] = 0.2;
-
-            AStarPathMovementComponent.timeToNextThink[eid] = 5000;
-            PathMovementComponent.timeToNextThink[eid] = 5000;
         }
 
 

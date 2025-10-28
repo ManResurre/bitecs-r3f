@@ -1,111 +1,69 @@
-import {useFrame} from "@react-three/fiber";
-import {CuboidCollider, RapierRigidBody, RigidBody} from "@react-three/rapier";
-import {useCallback, useEffect, useState} from "react";
-import {PositionComponent, RotationComponent} from "../../logic/components";
-import {useWorld} from "../hooks/useWorld.tsx";
-import {mobsQuery} from "../../logic/queries";
+import { useFrame } from "@react-three/fiber";
+import { useState, useMemo, useRef } from "react";
+import { YukaEntityComponent } from "../../logic/components";
+import { useWorld } from "../hooks/useWorld.tsx";
+import { mobsQuery } from "../../logic/queries";
 import FbxModel from "./FbxModel.tsx";
-import {enterQuery, exitQuery} from "bitecs";
+import { Vector3 } from "three";
+
+const textDecoder = new TextDecoder();
 
 export function Mobs() {
     const world = useWorld();
-    const [update, setForceUpdate] = useState(false);
+    const [mobPositions, setMobPositions] = useState<Map<number, Vector3>>(new Map());
+    const mobPositionsRef = useRef(mobPositions);
 
-    // Callback для установки RigidBody в мир
-    const setRigidBodyRef = useCallback((eid: number) => (ref: RapierRigidBody | null) => {
-        if (ref) {
-            world.rigidBodies.set(eid, ref);
-        } else {
-            world.rigidBodies.delete(eid);
-        }
-    }, [world]);
-
+    // Обновляем позиции мобов каждый кадр
     useFrame(() => {
-        const currentMobs = mobsQuery(world);
-        const oldMobs = exitQuery(mobsQuery)(world);
-        const newMobs = enterQuery(mobsQuery)(world);
+        const mobs = mobsQuery(world);
+        const newPositions = new Map();
 
-        // Удаляем RigidBody для удаленных мобов
-        oldMobs.forEach((eid) => {
-            world.rigidBodies.delete(eid);
-        });
+        let updated = false;
+        for (const eid of mobs) {
+            const mobName = textDecoder.decode(YukaEntityComponent.entityId[eid]);
+            const yMob = world.entityManager.getEntityByName(mobName);
 
-        // Форсируем перерисовку при изменениях
-        if (newMobs.length || oldMobs.length) {
-            setForceUpdate(!update);
-        }
+            if (yMob) {
+                const newPos = new Vector3(yMob.position.x, yMob.position.y, yMob.position.z);
+                const oldPos = mobPositionsRef.current.get(eid);
 
-        // Синхронизируем позиции RigidBody с ECS (физика -> визуал)
-        currentMobs.forEach((eid) => {
-            const rigidBody = world.rigidBodies.get(eid);
-            if (rigidBody) {
-                // Берем позицию из физики и применяем к визуальному представлению
-                const physPos = rigidBody.translation();
-
-                // Синхронизируем PositionComponent с физикой
-                PositionComponent.x[eid] = physPos.x;
-                PositionComponent.z[eid] = physPos.z;
-
-                // Для Y можно оставить как есть или тоже синхронизировать
-                // PositionComponent.y[eid] = physPos.y;
-
-                // Обновляем вращение
-                rigidBody.setRotation(
-                    {x: 0, y: RotationComponent.y[eid], z: 0, w: 1},
-                    true
-                );
-            } else {
-                // Если RigidBody еще нет, используем позицию из ECS
-                // Это нужно для начальной позиции при спавне
-                const rigidBody = world.rigidBodies.get(eid);
-                if (rigidBody) {
-                    rigidBody.setTranslation(
-                        {
-                            x: PositionComponent.x[eid],
-                            y: 0, // или PositionComponent.y[eid]
-                            z: PositionComponent.z[eid]
-                        },
-                        true
-                    );
+                // Обновляем только если позиция изменилась
+                if (!oldPos || !oldPos.equals(newPos)) {
+                    newPositions.set(eid, newPos);
+                    updated = true;
+                } else {
+                    newPositions.set(eid, oldPos);
                 }
             }
-        });
+        }
+
+        if (updated) {
+            mobPositionsRef.current = newPositions;
+            setMobPositions(newPositions);
+        }
     });
 
-    // Рендерим мобов
-    const mobComponents = mobsQuery(world).map((eid) => (
-        <RigidBody
-            key={eid}
-            ref={setRigidBodyRef(eid)}
-            position={[
-                PositionComponent.x[eid],
-                0, // начальная высота
-                PositionComponent.z[eid]
-            ]}
-            rotation={[0, RotationComponent.y[eid], 0]}
-            colliders={false}
-            lockRotations
-            enabledRotations={[false, false, false]} // блокируем все вращения
-        >
-            <FbxModel url="/models/npc/bot.fbx"/>
-            <CuboidCollider
-                position={[0, 1, 0]}
-                args={[0.5, 1, 0.5]}
-                restitution={0.1}
-                friction={0.5}
-            />
-        </RigidBody>
-    ));
+    // Мемоизируем компоненты мобов
+    const mobComponents = useMemo(() => {
+        const mobs = mobsQuery(world);
 
-    // Очистка при размонтировании
-    useEffect(() => {
-        return () => {
-            // Очищаем все RigidBody при размонтировании компонента
-            mobsQuery(world).forEach((eid) => {
-                world.rigidBodies.delete(eid);
-            });
-        };
-    }, [world]);
+        return mobs.map((eid) => {
+            const position = mobPositions.get(eid);
+
+            if (!position) {
+                return null;
+            }
+
+            return (
+                <FbxModel
+                    position={position}
+                    // rotation={[0, 0, 0]}
+                    key={eid}
+                    url="/models/npc/bot.fbx"
+                />
+            );
+        }).filter(Boolean);
+    }, [world, mobPositions]);
 
     return <>{mobComponents}</>;
 }

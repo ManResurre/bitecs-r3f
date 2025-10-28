@@ -1,14 +1,8 @@
-import {createWorld, addEntity, addComponent, IWorld} from "bitecs";
-import {
-    PositionComponent,
-    SpawnComponent, MobComponent, ParticleEmitterComponent,
-} from "./components";
+import {addComponent, addEntity, createWorld, IWorld} from "bitecs";
+import {ParticleEmitterComponent, PositionComponent, SpawnComponent,} from "./components";
 import {LevelData} from "../types/LevelData";
 import {CustomWorld} from "../types";
-
-const textEncoder = new TextEncoder();
-
-// const textDecoder = new TextDecoder();
+import {CellSpacePartitioning, EntityManager} from "yuka";
 
 export function createLevel(levelData: LevelData) {
     const world = createWorld({
@@ -18,7 +12,17 @@ export function createLevel(levelData: LevelData) {
             height: 20,
         },
         rigidBodies: new Map(),
+        entityManager: new EntityManager()
     }) as CustomWorld;
+
+    world.entityManager.spatialIndex = new CellSpacePartitioning(
+        world.size.width,
+        world.size.height,
+        10, // Глубина для 2D-мира
+        10, // Количество ячеек по X
+        10, // Количество ячеек по Y
+        10 // Количество ячеек по Z
+    );
 
     setSpawnMobs(levelData.mobs, world);
     createRainEmitter(world);
@@ -32,7 +36,6 @@ export function setSpawnMobs(mobs: LevelData["mobs"], world: IWorld) {
 
         addComponent(world, SpawnComponent, eid);
         addComponent(world, PositionComponent, eid);
-        addComponent(world, MobComponent, eid);
 
         PositionComponent.x[eid] = mobs[i].position[0];
         PositionComponent.z[eid] = mobs[i].position[1];
@@ -40,8 +43,6 @@ export function setSpawnMobs(mobs: LevelData["mobs"], world: IWorld) {
         SpawnComponent.delay[eid] = mobs[i].delay;
         SpawnComponent.max[eid] = mobs[i].max;
         SpawnComponent.cooldown[eid] = 0;
-
-        MobComponent.name[eid] = textEncoder.encode(mobs[i].name);
     }
 }
 

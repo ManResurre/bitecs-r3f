@@ -41,10 +41,9 @@ export const CircleMovementComponent = defineComponent({
     angularSpeed: Types.f32, // угловая скорость (радиан/секунду)
 });
 
-export const AStarPathMovementComponent = defineComponent({
-    timeToNextThink: Types.f32,
-    target: Vector2,
-    finalTarget: Vector2,
+export const PathMovementComponent = defineComponent({
+    timeToNextThink: Types.i16,
+    target: Vector3,
     movement: Types.i8,
     pathXs: [Types.i32, 100],
     pathYs: [Types.i32, 100],
@@ -52,23 +51,6 @@ export const AStarPathMovementComponent = defineComponent({
     pathIndex: Types.i32,        // текущий индекс в пути
     pathLength: Types.i32,       // общая длина пути
 });
-
-export const PathMovementComponent = defineComponent({
-    timeToNextThink: Types.i16,
-    target: Vector3,
-    movement: Types.i8,
-    pathXs: [Types.f32, 100],
-    pathYs: [Types.f32, 100],
-    pathZs: [Types.f32, 100],
-    pathIndex: Types.i32,        // текущий индекс в пути
-    pathLength: Types.i32,       // общая длина пути
-});
-
-export const RigidBodyComponent = {
-    // Мы не можем хранить объекты напрямую в ECS, поэтому используем ссылки по ID
-    // или синхронизируем через отдельную Map в мире
-    hasBody: Types.i8, // флаг что entity имеет физическое тело
-};
 
 export const ParticleComponent = defineComponent({
     life: Types.f32,        // время жизни частицы
@@ -87,4 +69,8 @@ export const ParticleEmitterComponent = defineComponent({
     cooldown: Types.f32,    // кулдаун до следующего испускания
     maxParticles: Types.ui16, // максимальное количество частиц
     emitterType: Types.ui8,   // тип эмиттера (0 = точечный, 1 = сфера, 2 = конус)
+});
+
+export const YukaEntityComponent = defineComponent({
+    entityId: [Types.ui8, 32], // ID соответствующей сущности в Yuka
 });
