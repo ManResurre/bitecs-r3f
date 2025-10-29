@@ -1,7 +1,27 @@
-import {FollowPathBehavior, NavMesh, OnPathBehavior, Polygon, Regulator, Think, Vector3, Vehicle} from "yuka";
+import {
+    FollowPathBehavior,
+    NavMesh,
+    OnPathBehavior,
+    Polygon,
+    Quaternion,
+    Regulator,
+    Think,
+    Vector3,
+    Vehicle
+} from "yuka";
 import CONFIG from "../core/Config.ts";
 import {CustomWorld} from "../types";
 import {ExploreEvaluator} from "../logic/evaluators/ExploreEvaluator.ts";
+import {STATUS_ALIVE} from "../core/Constants.ts";
+import {AnimationAction, AnimationMixer} from "three";
+
+// Константы для системы анимаций
+const DIRECTIONS = [
+    {direction: new Vector3(0, 0, 1), name: 'soldier_forward'},
+    {direction: new Vector3(0, 0, -1), name: 'soldier_backward'},
+    {direction: new Vector3(-1, 0, 0), name: 'soldier_left'},
+    {direction: new Vector3(1, 0, 0), name: 'soldier_right'}
+];
 
 export class Mob extends Vehicle {
     public eid: number;
@@ -10,8 +30,7 @@ export class Mob extends Vehicle {
     private initialized = false;
 
     currentTime = 0;
-
-    currentRegion: Polygon | null = null; // Меняем на null вместо undefined
+    currentRegion: Polygon | null = null;
     currentPosition = new Vector3();
     previousPosition = new Vector3();
 
@@ -20,8 +39,23 @@ export class Mob extends Vehicle {
 
     brain = new Think(this);
     goalArbitrationRegulator = new Regulator(5);
-
     maxSpeed = CONFIG.BOT.MOVEMENT.MAX_SPEED;
+
+    // animation
+    mixer: AnimationMixer | null = null;
+    status = STATUS_ALIVE;
+    actions?: Record<string, AnimationAction>;
+    actionsNames?: string[];
+
+    // Система смешивания анимаций
+    public lookDirection = new Vector3();
+    public moveDirection = new Vector3();
+
+    private quaternion = new Quaternion();
+    private transformedDirection = new Vector3();
+    private weightings: number[] = [0, 0, 0, 0];
+    private positiveWeightings: number[] = [];
+    private currentAnimationState = 'idle';
 
     constructor(eid: number, world: CustomWorld) {
         super();
@@ -30,13 +64,10 @@ export class Mob extends Vehicle {
         this.world = world;
         this.navMesh = world.navMesh!;
 
-        // Устанавливаем начальную позицию на случайном регионе navMesh
         this.initializePosition();
-
-        // goal-driven agent design
         this.brain.addEvaluator(new ExploreEvaluator());
 
-        // steering
+        // steering behaviors
         const followPathBehavior = new FollowPathBehavior();
         followPathBehavior.active = false;
         followPathBehavior.nextWaypointDistance = CONFIG.BOT.NAVIGATION.NEXT_WAYPOINT_DISTANCE;
@@ -53,14 +84,12 @@ export class Mob extends Vehicle {
         this.steering.add(onPathBehavior);
     }
 
-    // Новый метод для инициализации позиции
     private initializePosition(): void {
         if (!this.navMesh) {
             console.warn(`Mob ${this.eid}: NavMesh not available for position initialization`);
             return;
         }
 
-        // Получаем случайный регион и устанавливаем позицию
         const region = this.navMesh.getRandomRegion();
         if (region) {
             this.position.copy(region.centroid);
@@ -74,7 +103,6 @@ export class Mob extends Vehicle {
     }
 
     stayInLevel() {
-        // Если региона нет, пытаемся найти его для текущей позиции
         if (!this.currentRegion) {
             this.currentRegion = this.navMesh.getRegionForPoint(this.position, 1);
             if (!this.currentRegion) {
@@ -92,7 +120,6 @@ export class Mob extends Vehicle {
             this.position
         );
 
-        // Обновляем регион
         if (newRegion) {
             this.currentRegion = newRegion;
         } else {
@@ -101,7 +128,6 @@ export class Mob extends Vehicle {
 
         this.previousPosition.copy(this.position);
 
-        // Корректируем высоту
         if (this.currentRegion) {
             const distance = this.currentRegion.plane.distanceToPoint(this.position);
             this.position.y -= distance * CONFIG.NAVMESH.HEIGHT_CHANGE_FACTOR;
@@ -113,13 +139,11 @@ export class Mob extends Vehicle {
     update(delta: number): this {
         super.update(delta);
 
-        // Убедимся, что navMesh доступен
         if (!this.navMesh) {
             console.warn(`Mob ${this.eid}: No navMesh available`);
             return this;
         }
 
-        // Инициализируем при первом update, если еще не инициализированы
         if (!this.initialized) {
             this.currentRegion = this.navMesh.getRegionForPoint(this.position, 1);
             if (this.currentRegion) {
@@ -133,9 +157,10 @@ export class Mob extends Vehicle {
         // update goals
         this.brain.execute();
         if (this.goalArbitrationRegulator.ready()) {
-            console.log(`Mob ${this.eid}: Performing arbitration`);
             this.brain.arbitrate();
         }
+
+        this.updateAnimations(delta);
 
         return this;
     }
@@ -144,5 +169,121 @@ export class Mob extends Vehicle {
         const tolerance = CONFIG.BOT.NAVIGATION.ARRIVE_TOLERANCE * CONFIG.BOT.NAVIGATION.ARRIVE_TOLERANCE;
         const distance = this.position.squaredDistanceTo(position);
         return distance <= tolerance;
+    }
+
+    setAnimations(mixer: AnimationMixer, actions: Record<string, AnimationAction>, names: string[]) {
+        this.mixer = mixer;
+        this.actions = actions;
+        this.actionsNames = names;
+
+        // Запускаем idle анимацию по умолчанию
+        if (this.actions['soldier_idle']) {
+            this.actions['soldier_idle'].play();
+        }
+    }
+
+    updateAnimations(delta: number) {
+        if (!this.mixer || !this.actions) return this;
+
+        // Обновляем микшер анимаций
+        // this.mixer.update(delta);
+
+        if (this.status === STATUS_ALIVE) {
+            // Получаем направления
+            this.getDirection(this.lookDirection);
+            this.moveDirection.copy(this.velocity).normalize();
+
+            // Если скорость очень мала, используем idle анимацию
+            const speed = this.getSpeed();
+            if (speed < 0.1) {
+                this.setIdleAnimation();
+                return this;
+            }
+
+            // Вычисляем вращение для преобразования направлений
+            this.quaternion.lookAt(this.forward, this.moveDirection, this.up);
+
+            // Вычисляем веса для анимаций движения
+            this.calculateAnimationWeights(speed);
+        }
+
+        return this;
+    }
+
+    private setIdleAnimation() {
+        if (this.currentAnimationState === 'idle') return;
+
+        // Выключаем все анимации движения
+        for (const direction of DIRECTIONS) {
+            const action = this.actions![direction.name];
+            if (action) {
+                action.enabled = false;
+                action.weight = 0;
+            }
+        }
+
+        // Включаем idle анимацию
+        const idleAction = this.actions!['soldier_idle'];
+        if (idleAction) {
+            idleAction.enabled = true;
+            idleAction.weight = 1;
+            if (!idleAction.isRunning()) {
+                idleAction.play();
+            }
+        }
+
+        this.currentAnimationState = 'idle';
+    }
+
+    private calculateAnimationWeights(speed: number) {
+        this.positiveWeightings.length = 0;
+        let sum = 0;
+
+        // Вычисляем веса для каждого направления
+        for (let i = 0; i < DIRECTIONS.length; i++) {
+            this.transformedDirection.copy(DIRECTIONS[i].direction).applyRotation(this.quaternion);
+            const dot = this.transformedDirection.dot(this.lookDirection);
+            this.weightings[i] = (dot < 0) ? 0 : dot;
+
+            const action = this.actions![DIRECTIONS[i].name];
+            if (action && this.weightings[i] > 0.001) {
+                action.enabled = true;
+                this.positiveWeightings.push(i);
+                sum += this.weightings[i];
+            } else if (action) {
+                action.enabled = false;
+                action.weight = 0;
+            }
+        }
+
+        // Если нет активных анимаций, используем idle
+        if (this.positiveWeightings.length === 0) {
+            this.setIdleAnimation();
+            return;
+        }
+
+        // Нормализуем веса и устанавливаем для анимаций
+        for (let i = 0; i < this.positiveWeightings.length; i++) {
+            const index = this.positiveWeightings[i];
+            const action = this.actions![DIRECTIONS[index].name];
+            if (action) {
+                action.weight = this.weightings[index] / sum;
+                // Масштабируем скорость анимации в зависимости от фактической скорости
+                action.timeScale = speed / this.maxSpeed;
+
+                if (!action.isRunning()) {
+                    action.play();
+                }
+            }
+        }
+
+        // Выключаем idle анимацию, если активны анимации движения
+        const idleAction = this.actions!['soldier_idle'];
+        if (idleAction) {
+            idleAction.enabled = false;
+            idleAction.weight = 0;
+        }
+
+        this.currentAnimationState = 'moving';
     }
 }

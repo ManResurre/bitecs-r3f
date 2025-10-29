@@ -5,6 +5,7 @@ import { useWorld } from "../hooks/useWorld.tsx";
 import { mobsQuery } from "../../logic/queries";
 import FbxModel from "./FbxModel.tsx";
 import { Vector3 } from "three";
+import SoldierModel from "./GLBModel.tsx";
 
 const textDecoder = new TextDecoder();
 
@@ -55,12 +56,13 @@ export function Mobs() {
             }
 
             return (
-                <FbxModel
-                    position={position}
-                    // rotation={[0, 0, 0]}
-                    key={eid}
-                    url="/models/npc/bot.fbx"
-                />
+                <SoldierModel key={eid} position={position} eid={eid}/>
+                // <FbxModel
+                //     position={position}
+                //     // rotation={[0, 0, 0]}
+                //     key={eid}
+                //     url="/models/npc/bot.fbx"
+                // />
             );
         }).filter(Boolean);
     }, [world, mobPositions]);
