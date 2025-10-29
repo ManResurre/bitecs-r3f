@@ -1,5 +1,5 @@
 import {useAnimations, useGLTF} from "@react-three/drei";
-import {useEffect, useMemo, useRef, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import {cloneWithSkinning} from "../../utils/SceneHelper.ts";
 import {Mob} from "../../entities/Mob.ts";
 import {AnimationAction, Quaternion as TREEQuaternion} from "three";
@@ -70,4 +70,4 @@ const SoldierModel = ({eid, debug = true, position, ...props}: SoldierModelProps
     );
 };
 
-export default SoldierModel;
+export default React.memo(SoldierModel);

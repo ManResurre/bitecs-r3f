@@ -1,19 +1,20 @@
 import {
-    FollowPathBehavior,
+    FollowPathBehavior, GameEntity, MemorySystem,
     NavMesh,
     OnPathBehavior,
     Polygon,
     Quaternion,
-    Regulator,
+    Regulator, SeekBehavior,
     Think,
     Vector3,
-    Vehicle
+    Vehicle, Vision
 } from "yuka";
 import CONFIG from "../core/Config.ts";
 import {CustomWorld} from "../types";
 import {ExploreEvaluator} from "../logic/evaluators/ExploreEvaluator.ts";
-import {STATUS_ALIVE} from "../core/Constants.ts";
+import {HEALTH_PACK, STATUS_ALIVE, WEAPON_TYPES_ASSAULT_RIFLE, WEAPON_TYPES_SHOTGUN} from "../core/Constants.ts";
 import {AnimationAction, AnimationMixer} from "three";
+import {mobsQuery} from "../logic/queries";
 
 // Константы для системы анимаций
 const DIRECTIONS = [
@@ -23,11 +24,16 @@ const DIRECTIONS = [
     {direction: new Vector3(1, 0, 0), name: 'soldier_right'}
 ];
 
+const worldPosition = new Vector3();
+
 export class Mob extends Vehicle {
     public eid: number;
     public navMesh: NavMesh;
     public world: CustomWorld;
     private initialized = false;
+
+    health = CONFIG.BOT.MAX_HEALTH;
+    maxHealth = CONFIG.BOT.MAX_HEALTH;
 
     currentTime = 0;
     currentRegion: Polygon | null = null;
@@ -57,6 +63,24 @@ export class Mob extends Vehicle {
     private positiveWeightings: number[] = [];
     private currentAnimationState = 'idle';
 
+    // item related properties
+    ignoreHealth = false;
+    ignoreShotgun = false;
+    ignoreAssaultRifle = false;
+    endTimeIgnoreHealth = Infinity;
+    endTimeIgnoreShotgun = Infinity;
+    endTimeIgnoreAssaultRifle = Infinity;
+    ignoreItemsTimeout = CONFIG.BOT.IGNORE_ITEMS_TIMEOUT;
+
+    // vision
+    head = new GameEntity();
+    vision = new Vision(this.head);
+    visionRegulator = new Regulator(CONFIG.BOT.VISION.UPDATE_FREQUENCY);
+
+    // memory
+    memorySystem = new MemorySystem(this);
+    memoryRecords = [];
+
     constructor(eid: number, world: CustomWorld) {
         super();
         this.eid = eid;
@@ -82,6 +106,16 @@ export class Mob extends Vehicle {
         onPathBehavior.radius = CONFIG.BOT.NAVIGATION.PATH_RADIUS;
         onPathBehavior.weight = CONFIG.BOT.NAVIGATION.ONPATH_WEIGHT;
         this.steering.add(onPathBehavior);
+
+        const seekBehavior = new SeekBehavior();
+        seekBehavior.active = false;
+        this.steering.add(seekBehavior);
+
+        //head
+        this.head.position.y = CONFIG.BOT.HEAD_HEIGHT;
+        this.add(this.head);
+
+        this.memorySystem.memorySpan = CONFIG.BOT.MEMORY.SPAN;
     }
 
     private initializePosition(): void {
@@ -96,7 +130,6 @@ export class Mob extends Vehicle {
             this.currentRegion = region;
             this.previousPosition.copy(this.position);
             this.initialized = true;
-            console.log(`Mob ${this.eid}: Initialized at position`, this.position);
         } else {
             console.error(`Mob ${this.eid}: Could not find random region for initialization`);
         }
@@ -160,7 +193,70 @@ export class Mob extends Vehicle {
             this.brain.arbitrate();
         }
 
-        this.updateAnimations(delta);
+        this.updateAnimations();
+
+        if (this.status === STATUS_ALIVE) {
+            // update perception
+            if (this.visionRegulator.ready()) {
+                this.updateVision();
+            }
+        }
+
+        return this;
+    }
+
+    updateVision() {
+        // 1. Получаем ссылки на систему памяти и зрение текущего врага
+        const memorySystem = this.memorySystem;
+        const vision = this.vision;
+
+        // 2. Получаем список всех "конкурентов" (других сущностей в мире)
+        const mobIds = mobsQuery(this.world);
+        // this.eid
+
+        // 3. Перебираем всех конкурентов в цикле
+        for (const mobId of mobIds) {
+            // 4. Пропускаем самого себя и мертвых сущностей
+            if (this.eid == mobId) continue;
+
+            const competitor = this.world.entityManager.getEntityByName(`mob_${mobId}`) as Mob;
+            if (!competitor || competitor.status !== STATUS_ALIVE) continue;
+
+            // Создаем запись если её нет и сразу получаем её
+            if (!memorySystem.hasRecord(competitor)) {
+                memorySystem.createRecord(competitor);
+            }
+
+            // 6. Получаем запись о конкуренте из памяти
+            const record = memorySystem.getRecord(competitor);
+
+            // Если запись все равно undefined - пропускаем
+            if (!record) {
+                console.warn(`Could not get record for competitor ${mobId}`);
+                continue;
+            }
+
+            // 7. Получаем мировую позицию головы конкурента
+            competitor.head.getWorldPosition(worldPosition);
+
+            // 8. Проверяем, видна ли голова конкурента
+            if (vision.visible(worldPosition) && competitor.active) {
+                // 9. Если видна - обновляем время последнего обнаружения
+                record.timeLastSensed = this.currentTime;
+
+                // 10. Сохраняем последнюю обнаруженную позицию (тела, а не головы)
+                record.lastSensedPosition.copy(competitor.position);
+
+                // 11. Если конкурент стал видимым только что - запоминаем время
+                if (record.visible === false) record.timeBecameVisible = this.currentTime;
+
+                // 12. Помечаем конкурента как видимого
+                record.visible = true;
+            } else {
+                // 13. Если не виден - помечаем как невидимого
+                record.visible = false;
+            }
+        }
 
         return this;
     }
@@ -182,7 +278,7 @@ export class Mob extends Vehicle {
         }
     }
 
-    updateAnimations(delta: number) {
+    updateAnimations() {
         if (!this.mixer || !this.actions) return this;
 
         // Обновляем микшер анимаций
@@ -285,5 +381,25 @@ export class Mob extends Vehicle {
         }
 
         this.currentAnimationState = 'moving';
+    }
+
+    isItemIgnored(type: number) {
+        let ignoreItem = false;
+        switch (type) {
+            case HEALTH_PACK:
+                ignoreItem = this.ignoreHealth;
+                break;
+            case WEAPON_TYPES_SHOTGUN:
+                ignoreItem = this.ignoreShotgun;
+                break;
+            case WEAPON_TYPES_ASSAULT_RIFLE:
+                ignoreItem = this.ignoreAssaultRifle;
+                break;
+            default:
+                console.error('Mob: Invalid item type:', type);
+                break;
+        }
+
+        return ignoreItem;
     }
 }
