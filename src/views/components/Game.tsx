@@ -1,33 +1,13 @@
-import {Suspense, useRef, useState} from "react";
-import {Environment, OrbitControls, Sky, Stats} from '@react-three/drei';
+import {Suspense} from "react";
+import {OrbitControls, Sky, Stats} from '@react-three/drei';
 import {Perf} from 'r3f-perf';
 import {useLoaderData} from "@tanstack/react-router";
 import {WorldContextProvider} from "../contexts/WorldContextProvider.tsx";
-import Level from "./Level.tsx";
-import {NavMesh} from "yuka";
-import {NavMeshDebug} from "./NavigationDebug.tsx";
-import {Mobs} from "./Mobs.tsx";
-import {Physics, RigidBody} from "@react-three/rapier";
 import Light from "./Light.tsx";
-import GLBModel from "./SoldierModel.tsx";
-import SoldierModel from "./SoldierModel.tsx";
-import {HealthPack} from "./HealthPack.tsx";
+import GameScene from "./GameScene.tsx";
 
 export function Game() {
-    const rbRef = useRef(null);
-    const planeRef = useRef(null);
-
-    const [navMesh, setNavMesh] = useState<NavMesh>();
-
     const {levelData} = useLoaderData({from: "/"});
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const handlePlaceClick = (event: MouseEvent) => {
-        // console.log(event);
-    };
-
-    const handleNavMeshLoaded = (navMesh: NavMesh) => {
-        setNavMesh(navMesh)
-    }
 
     return (
         <>
@@ -65,7 +45,7 @@ export function Game() {
                     />
 
                     {/* Дополнительное окружение для лучшего освещения */}
-                    {/*<Environment preset="city"/>*/}
+                    {/*<Environment preset="city" environmentIntensity={0} />*/}
 
                     {/*<ambientLight intensity={1}/>*/}
                     {/*<directionalLight*/}
@@ -123,27 +103,25 @@ export function Game() {
 
                     {/*<fog attach="fog" args={['#6d7b88', 3, 15]}/>*/}
 
-                    <Physics gravity={[0, -1, 0]}>
-                        <RigidBody position={[0, 0, 0]} ref={rbRef} type="fixed" colliders="trimesh">
-                            {/*        /!*<Plane*!/*/}
-                            {/*        /!*    ref={planeRef}*!/*/}
-                            {/*        /!*    args={[35, 35]}*!/*/}
-                            {/*        /!*    rotation={[-Math.PI / 2, 0, 0]}*!/*/}
-                            {/*        /!*    position={[0, 0.1, 0]}*!/*/}
-                            {/*        /!*    onClick={handlePlaceClick}*!/*/}
-                            {/*        /!*    receiveShadow*!/*/}
-                            {/*        /!*>*!/*/}
-                            {/*        /!*    <AdvancedRainMaterial/>*!/*/}
-                            {/*        /!*</Plane>*!/*/}
-                            {/*        <Floor/>*/}
-                            <Level/>
-                        </RigidBody>
-                        {/*    /!*<Box castShadow position={[-2, 1, 0]}/>*!/*/}
+                    {/*<Physics gravity={[0, -1, 0]}>*/}
+                    {/*    <RigidBody position={[0, 0, 0]} ref={rbRef} type="fixed" colliders="trimesh">*/}
+                    {/*        /!*<Plane*!/*/}
+                    {/*        /!*    ref={planeRef}*!/*/}
+                    {/*        /!*    args={[35, 35]}*!/*/}
+                    {/*        /!*    rotation={[-Math.PI / 2, 0, 0]}*!/*/}
+                    {/*        /!*    position={[0, 0.1, 0]}*!/*/}
+                    {/*        /!*    onClick={handlePlaceClick}*!/*/}
+                    {/*        /!*    receiveShadow*!/*/}
+                    {/*        /!*>*!/*/}
+                    {/*        /!*    <AdvancedRainMaterial/>*!/*/}
+                    {/*        /!*</Plane>*!/*/}
+                    {/*        <Floor/>*/}
+                    <GameScene/>
+                    {/*</RigidBody>*/}
+                    {/*    /!*<Box castShadow position={[-2, 1, 0]}/>*!/*/}
 
-                    </Physics>
-                    <Mobs/>
-                    <HealthPack position={[0, -3.5, 0]}/>
-                    <HealthPack position={[1, -3.5, 0]}/>
+                    {/*</Physics>*/}
+
 
                     {/*<Grid position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}/>*/}
 
@@ -155,9 +133,6 @@ export function Game() {
                     {/*    <sphereGeometry args={[1, 32, 32]}/>*/}
                     {/*    <meshStandardMaterial metalness={1} roughness={0.5}/>*/}
                     {/*</mesh>*/}
-
-                    <NavMeshDebug/>
-
 
                     <Stats className="stats"/>
                     <Perf position={"bottom-right"}/>

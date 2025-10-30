@@ -6,7 +6,7 @@ import {
     SpawnComponent,
     SpeedComponent,
     TileComponent,
-    VelocityComponent, YukaEntityComponent,
+    VelocityComponent, MobYukaEntityComponent, HealthPackSpawnComponent, HealthPackComponent,
 } from "../components";
 import {FlowComponent} from "../components/FlowComponent";
 import {GraphComponent} from "../components/GraphComponent";
@@ -53,11 +53,21 @@ export const carsQuery = defineQuery([
 
 export const mobsQuery = defineQuery([
     MobComponent,
-    YukaEntityComponent
+    MobYukaEntityComponent
 ]);
 
 export const yukaQuery = defineQuery([
-    YukaEntityComponent
+    MobYukaEntityComponent
+])
+
+export const healthPackSpawnQuery = defineQuery([
+    SpawnComponent,
+    PositionComponent,
+    HealthPackSpawnComponent
+])
+
+export const healthPackQuery = defineQuery([
+    HealthPackComponent,
 ])
 
 export const enterCarsQuery = enterQuery(carsQuery);

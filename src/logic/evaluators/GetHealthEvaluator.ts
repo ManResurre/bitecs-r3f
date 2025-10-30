@@ -1,38 +1,25 @@
-import {GoalEvaluator, MathUtils} from 'yuka';
+import {GoalEvaluator} from 'yuka';
 import {Mob} from "../../entities/Mob.ts";
-import {Feature} from "../../core/Feature.ts";
+import {GetItemGoal} from "../goals/GetItemGoal.ts";
 
 export class GetHealthEvaluator extends GoalEvaluator<Mob> {
-    itemType = null;
-    tweaker = 0.2;
-
-    constructor(characterBias = 1, itemType = null) {
+    constructor(characterBias = 1) {
         super(characterBias);
-
-        this.itemType = itemType;
     }
 
     calculateDesirability(owner: Mob) {
-
-        let desirability = 0;
-
-        if (owner.isItemIgnored(this.itemType) === false && owner.health < owner.maxHealth) {
-
-            const distanceScore = Feature.distanceToItem(owner, this.itemType);
-            const healthScore = Feature.health(owner);
-            desirability = this.tweaker * (1 - healthScore) / distanceScore;
-            desirability = MathUtils.clamp(desirability, 0, 1);
+        // Высокая желательность, когда здоровье низкое и есть доступные аптечки
+        if (owner.health < owner.maxHealth * 0.5) {
+            return 0.8;
         }
-
-        return desirability;
+        return 0.1;
     }
 
     setGoal(owner: Mob) {
         const currentSubgoal = owner.brain.currentSubgoal();
-
-        if ((currentSubgoal instanceof GetItemGoal) === false) {
+        if (!(currentSubgoal instanceof GetItemGoal)) {
             owner.brain.clearSubgoals();
-            owner.brain.addSubgoal(new GetItemGoal(owner, this.itemType));
+            owner.brain.addSubgoal(new GetItemGoal(owner));
         }
     }
 }

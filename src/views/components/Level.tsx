@@ -1,7 +1,7 @@
 import React, {useLayoutEffect} from "react";
 import {useLoader} from "@react-three/fiber";
 import {GLTFLoader} from "three/examples/jsm/Addons.js";
-import {DoubleSide, Mesh, MeshBasicMaterial, MeshStandardMaterial, TextureLoader} from "three";
+import {Mesh, MeshBasicMaterial, MeshStandardMaterial, TextureLoader} from "three";
 import {useGLTF, useTexture} from '@react-three/drei';
 
 const Level = () => {
@@ -47,7 +47,9 @@ const Level = () => {
 
     }, [scene, lightmap]);
 
-    return <primitive object={scene}/>;
+    return <>
+        <primitive object={scene}/>
+    </>;
 }
 
 // Предзагрузка ресурсов

@@ -3,51 +3,62 @@ import {FindPathGoal} from './FindPathGoal.js';
 import {FollowPathGoal} from './FollowPathGoal.js';
 import {Mob} from "../../entities/Mob.ts";
 import CONFIG from "../../core/Config.ts";
-
-const result = {distance: Infinity, item: null};
+import {HealthPackEntity} from "../../entities/HealthPackEntity.ts";
+import {healthPackQuery} from "../queries";
 
 export class GetItemGoal extends CompositeGoal<Mob> {
-    itemType: number;
-    item = null;
+    item: HealthPackEntity | null = null;
     regulator = new Regulator(CONFIG.BOT.GOAL.ITEM_VISIBILITY_UPDATE_FREQUENCY);
 
-    constructor(owner: Mob, itemType: number, item = null) {
+    constructor(owner: Mob) {
         super(owner);
+    }
 
-        this.itemType = itemType;
-        this.item = item;
+    private findClosestHealthPack(): HealthPackEntity | null {
+        const healthIds = healthPackQuery(this.owner!.world);
+
+        let closestItem = null;
+        let minDistance = Infinity;
+        for (const hpId of healthIds) {
+            const health = this.owner!.world.entityManager.getEntityByName(`healthPack${hpId}`) as HealthPackEntity;
+            const fromRegion = this.owner!.currentRegion!;
+            const toRegion = health.currentRegion!;
+
+            const from = this.owner!.world.navMesh!.getNodeIndex(fromRegion);
+            const to = this.owner!.world.navMesh!.getNodeIndex(toRegion);
+
+            const distance = this.owner!.world.costTable!.get(from, to);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestItem = health;
+            }
+        }
+
+        return closestItem;
     }
 
     activate() {
+        // Находим ближайшую аптечку
         const owner = this.owner;
         if (!owner)
             return;
 
-        // if this goal is reactivated then there may be some existing subgoals that must be removed
-        this.clearSubgoals();
+        const foundHealthPack = this.findClosestHealthPack();
 
-        // get closest available item of the given type
-        owner.world.getClosestItem(owner, this.itemType, result);
-
-        this.item = result.item;
-
-        if (this.item) {
+        if (foundHealthPack) {
+            this.item = foundHealthPack;
             // if an item was found, try to pick it up
             const from = new Vector3().copy(owner.position);
-            const to = new Vector3().copy(this.item.position);
+            const to = new Vector3().copy(foundHealthPack.position);
 
             // setup subgoals
             this.addSubgoal(new FindPathGoal(owner, from, to));
             this.addSubgoal(new FollowPathGoal(owner));
-        } else {
 
-            // if no item was returned, there is nothing to pick up.
-            // mark the goal as failed
-            this.status = Goal.STATUS.FAILED;
-
-            // ensure the bot does not look for this type of item for a while
-            owner.ignoreItem(this.itemType);
+            return;
         }
+
+        this.status = Goal.STATUS.FAILED;
     }
 
     execute() {
@@ -72,5 +83,4 @@ export class GetItemGoal extends CompositeGoal<Mob> {
     terminate() {
         this.clearSubgoals();
     }
-
 }

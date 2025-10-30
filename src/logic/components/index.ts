@@ -71,6 +71,13 @@ export const ParticleEmitterComponent = defineComponent({
     emitterType: Types.ui8,   // тип эмиттера (0 = точечный, 1 = сфера, 2 = конус)
 });
 
-export const YukaEntityComponent = defineComponent({
+export const MobYukaEntityComponent = defineComponent({
     entityId: [Types.ui8, 32], // ID соответствующей сущности в Yuka
+});
+
+export const HealthPackComponent = defineComponent({
+    entityId: [Types.ui8, 32], // ID соответствующей сущности в Yuka
+});
+
+export const HealthPackSpawnComponent = defineComponent({
 });

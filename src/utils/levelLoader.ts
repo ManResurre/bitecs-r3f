@@ -15,6 +15,9 @@ export async function loadLevelData(): Promise<LevelData> {
             //     max: 5,
             //     position: [2, 0]
             // }
-        ]
+        ],
+        healthPackSpawningPoints: [
+            [-1, -2.92, 0], [33.5, -6.42, 18], [-27, -3.77, -27]
+        ],
     };
 }

@@ -6,5 +6,6 @@ export type LevelData = {
         delay: number;
         max: number;
         position: Vector2Tuple;
-    }[]
+    }[];
+    healthPackSpawningPoints: number[][]
 };

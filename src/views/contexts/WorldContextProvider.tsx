@@ -8,6 +8,7 @@ import {WorldContext} from "./WorldContext.tsx";
 import {spawnMobsSystem} from "../../logic/systems/spawnMobsSystem.ts";
 import {loadNavMeshSystem} from "../../logic/systems/loadNavMeshSystem.ts";
 import {yukaIntegrationSystem} from "../../logic/systems/yukaIntegrationSystem.ts";
+import {spawnHealthSystem} from "../../logic/systems/spawnHealthSystem.ts";
 
 export function WorldContextProvider({
                                          children,
@@ -21,6 +22,7 @@ export function WorldContextProvider({
     const pipeline = pipe(
         timeSystem,
         spawnMobsSystem,
+        spawnHealthSystem,
         yukaIntegrationSystem
         // pathDecisionSystem,    // Принятие решений о путях
         // pathMovementSystem,    // Движение по пути

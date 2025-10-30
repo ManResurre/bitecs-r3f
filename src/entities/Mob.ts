@@ -22,6 +22,7 @@ import {
 import {AnimationAction, AnimationMixer} from "three";
 import {mobsQuery} from "../logic/queries";
 import {TargetSystem} from "../core/TargetSystem.ts";
+import {GetHealthEvaluator} from "../logic/evaluators/GetHealthEvaluator.ts";
 
 // Константы для системы анимаций
 const DIRECTIONS = [
@@ -112,7 +113,8 @@ export class Mob extends Vehicle {
         this.navMesh = world.navMesh!;
 
         this.initializePosition();
-        this.brain.addEvaluator(new ExploreEvaluator());
+        // this.brain.addEvaluator(new ExploreEvaluator());
+        this.brain.addEvaluator(new GetHealthEvaluator());
 
         // steering behaviors
         const followPathBehavior = new FollowPathBehavior();

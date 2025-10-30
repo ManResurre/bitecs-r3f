@@ -1,8 +1,14 @@
 import {addComponent, addEntity, createWorld, IWorld} from "bitecs";
-import {ParticleEmitterComponent, PositionComponent, SpawnComponent,} from "./components";
+import {
+    HealthPackSpawnComponent,
+    ParticleEmitterComponent,
+    PositionComponent,
+    SpawnComponent,
+} from "./components";
 import {LevelData} from "../types/LevelData";
 import {CustomWorld} from "../types";
 import {CellSpacePartitioning, EntityManager} from "yuka";
+import CONFIG from "../core/Config.ts";
 
 export function createLevel(levelData: LevelData) {
     const world = createWorld({
@@ -12,7 +18,9 @@ export function createLevel(levelData: LevelData) {
             height: 20,
         },
         rigidBodies: new Map(),
-        entityManager: new EntityManager()
+        entityManager: new EntityManager(),
+
+
     }) as CustomWorld;
 
     world.entityManager.spatialIndex = new CellSpacePartitioning(
@@ -25,12 +33,13 @@ export function createLevel(levelData: LevelData) {
     );
 
     setSpawnMobs(levelData.mobs, world);
+    setSpawnHealthPack(levelData.healthPackSpawningPoints, world)
     createRainEmitter(world);
 
     return world;
 }
 
-export function setSpawnMobs(mobs: LevelData["mobs"], world: IWorld) {
+function setSpawnMobs(mobs: LevelData["mobs"], world: CustomWorld) {
     for (let i = 0; i < mobs.length; i++) {
         const eid = addEntity(world);
 
@@ -46,7 +55,24 @@ export function setSpawnMobs(mobs: LevelData["mobs"], world: IWorld) {
     }
 }
 
-export function createRainEmitter(world: CustomWorld) {
+function setSpawnHealthPack(points: LevelData["healthPackSpawningPoints"], world: CustomWorld) {
+    for (const point of points) {
+        const eid = addEntity(world);
+        addComponent(world, SpawnComponent, eid);
+        addComponent(world, PositionComponent, eid);
+        addComponent(world, HealthPackSpawnComponent, eid);
+
+        PositionComponent.x[eid] = point[0];
+        PositionComponent.y[eid] = point[1];
+        PositionComponent.z[eid] = point[2];
+
+        SpawnComponent.delay[eid] = CONFIG.HEALTH_PACK.RESPAWN_TIME * 1000;
+        SpawnComponent.cooldown[eid] = 0;
+        SpawnComponent.max[eid] = 1;
+    }
+}
+
+function createRainEmitter(world: CustomWorld) {
     const emitterEid = addEntity(world);
 
     addComponent(world, PositionComponent, emitterEid);

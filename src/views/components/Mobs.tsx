@@ -1,6 +1,6 @@
 import { useFrame } from "@react-three/fiber";
 import { useState, useMemo, useRef } from "react";
-import { YukaEntityComponent } from "../../logic/components";
+import { MobYukaEntityComponent } from "../../logic/components";
 import { useWorld } from "../hooks/useWorld.tsx";
 import { mobsQuery } from "../../logic/queries";
 import { Vector3 } from "three";
@@ -20,7 +20,7 @@ export function Mobs() {
 
         let updated = false;
         for (const eid of mobs) {
-            const mobName = textDecoder.decode(YukaEntityComponent.entityId[eid]);
+            const mobName = textDecoder.decode(MobYukaEntityComponent.entityId[eid]);
             const yMob = world.entityManager.getEntityByName(mobName);
 
             if (yMob) {
