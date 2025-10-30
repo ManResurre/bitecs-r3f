@@ -3,9 +3,8 @@ import { useState, useMemo, useRef } from "react";
 import { YukaEntityComponent } from "../../logic/components";
 import { useWorld } from "../hooks/useWorld.tsx";
 import { mobsQuery } from "../../logic/queries";
-import FbxModel from "./FbxModel.tsx";
 import { Vector3 } from "three";
-import SoldierModel from "./GLBModel.tsx";
+import SoldierModel from "./SoldierModel.tsx";
 
 const textDecoder = new TextDecoder();
 

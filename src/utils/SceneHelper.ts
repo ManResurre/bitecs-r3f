@@ -1,4 +1,4 @@
-import {Bone, Object3D, Skeleton, SkinnedMesh} from "three";
+import {Bone, Mesh, Object3D, Skeleton, SkinnedMesh} from "three";
 
 // Вспомогательная функция для параллельного обхода двух сцен
 function parallelTraverse(a: Object3D, b: Object3D, callback: (a: Object3D, b: Object3D) => void): void {
@@ -37,6 +37,15 @@ export function cloneWithSkinning(source: Object3D): Object3D {
         }) as Bone[];
 
         clonedMesh.bind(clonedMesh.skeleton, (sourceMesh as SkinnedMesh).bindMatrix);
+
+        clonedMesh.traverse((child: Object3D) => {
+            if ((child as Mesh).isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                // Обновляем матрицы для корректного отображения теней
+                child.frustumCulled = false;
+            }
+        });
     });
 
     return clone;

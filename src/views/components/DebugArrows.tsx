@@ -4,7 +4,7 @@ import {useFrame} from '@react-three/fiber';
 import {Vector3} from "yuka";
 
 interface DebugArrowsProps {
-    position: Vector3;
+    position: TREEVector3;
     lookDirection: Vector3;
     moveDirection: Vector3;
     enabled?: boolean;
@@ -14,7 +14,6 @@ const DebugArrows = ({position, lookDirection, moveDirection, enabled = true}: D
     const lookArrowRef = useRef<ArrowHelper>(null);
     const moveArrowRef = useRef<ArrowHelper>(null);
     const ld = lookDirection.clone().normalize()
-    const pos = new TREEVector3(position.x, position.y, position.z);
     const md = moveDirection.clone().normalize();
 
     useFrame(() => {
@@ -41,11 +40,11 @@ const DebugArrows = ({position, lookDirection, moveDirection, enabled = true}: D
         <group>
             <arrowHelper
                 ref={lookArrowRef}
-                args={[new TREEVector3(ld.x, ld.y, ld.z), pos, 1, 0xff0000]} // Красный - взгляд
+                args={[new TREEVector3(ld.x, ld.y, ld.z), position, 1, 0xff0000]} // Красный - взгляд
             />
             <arrowHelper
                 ref={moveArrowRef}
-                args={[new TREEVector3(md.x, md.y, md.z), pos, 0.8, 0x0000ff]} // Синий - движение
+                args={[new TREEVector3(md.x, md.y, md.z), position, 0.8, 0x0000ff]} // Синий - движение
             />
         </group>
     );

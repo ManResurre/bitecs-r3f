@@ -11,10 +11,10 @@ const Light = () => {
 
     useHelper(dr as RefObject<DirectionalLight>, DirectionalLightHelper, 1, "red");
     const {intensity, x, y, z, targetX, targetY, targetZ, color} = useControls('Light', {
-        intensity: {value: 1, min: 0, max: 5},
-        x: {value: 10, min: -10, max: 10},
-        y: {value: 10, min: -10, max: 10},
-        z: {value: 10, min: -10, max: 10},
+        intensity: {value: 5, min: 0, max: 15},
+        x: {value: 0, min: -30, max: 30},
+        y: {value: 30, min: -30, max: 30},
+        z: {value: 30, min: -30, max: 30},
         targetX: {value: 0, min: -10, max: 10},
         targetY: {value: 0, min: -10, max: 10},
         targetZ: {value: 0, min: -10, max: 10},
@@ -53,12 +53,12 @@ const Light = () => {
             castShadow
             intensity={intensity}
             shadow-mapSize={[2048, 2048]}
-            shadow-camera-left={-20}
-            shadow-camera-right={20}
-            shadow-camera-top={20}
-            shadow-camera-bottom={-20}
+            shadow-camera-left={-50}
+            shadow-camera-right={50}
+            shadow-camera-top={50}
+            shadow-camera-bottom={-50}
             shadow-camera-near={0.1}
-            shadow-camera-far={40}
+            shadow-camera-far={90}
             shadow-bias={-0.0005}
         >
             <object3D ref={targetRef}/>

@@ -2,7 +2,7 @@ import {useAnimations, useGLTF} from "@react-three/drei";
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import {cloneWithSkinning} from "../../utils/SceneHelper.ts";
 import {Mob} from "../../entities/Mob.ts";
-import {AnimationAction, Quaternion as TREEQuaternion} from "three";
+import {AnimationAction, Quaternion as TREEQuaternion, Vector3 as TREEVector3} from "three";
 import {useWorld} from "../hooks/useWorld.tsx";
 import {useFrame} from "@react-three/fiber";
 import DebugArrows from "./DebugArrows.tsx";
@@ -10,7 +10,7 @@ import {Quaternion, Vector3} from "yuka";
 
 export interface SoldierModelProps {
     eid: number;
-    position?: Vector3;
+    position?: TREEVector3;
     scale?: number;
     castShadow?: boolean;
     receiveShadow?: boolean;

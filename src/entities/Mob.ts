@@ -1,5 +1,5 @@
 import {
-    FollowPathBehavior, GameEntity, MemorySystem,
+    FollowPathBehavior, GameEntity, MemoryRecord, MemorySystem,
     NavMesh,
     OnPathBehavior,
     Polygon,
@@ -12,9 +12,16 @@ import {
 import CONFIG from "../core/Config.ts";
 import {CustomWorld} from "../types";
 import {ExploreEvaluator} from "../logic/evaluators/ExploreEvaluator.ts";
-import {HEALTH_PACK, STATUS_ALIVE, WEAPON_TYPES_ASSAULT_RIFLE, WEAPON_TYPES_SHOTGUN} from "../core/Constants.ts";
+import {
+    HEALTH_PACK,
+    STATUS_ALIVE, STATUS_DEAD,
+    STATUS_DYING,
+    WEAPON_TYPES_ASSAULT_RIFLE,
+    WEAPON_TYPES_SHOTGUN
+} from "../core/Constants.ts";
 import {AnimationAction, AnimationMixer} from "three";
 import {mobsQuery} from "../logic/queries";
+import {TargetSystem} from "../core/TargetSystem.ts";
 
 // Константы для системы анимаций
 const DIRECTIONS = [
@@ -79,7 +86,23 @@ export class Mob extends Vehicle {
 
     // memory
     memorySystem = new MemorySystem(this);
-    memoryRecords = [];
+    memoryRecords: MemoryRecord[] = [];
+
+    // death animation
+    endTimeDying = Infinity;
+    dyingTime = CONFIG.BOT.DYING_TIME;
+
+    // searching for attackers
+    searchAttacker = false;
+    attackDirection = new Vector3();
+    endTimeSearch = Infinity;
+    searchTime = CONFIG.BOT.SEARCH_FOR_ATTACKER_TIME;
+
+    // target system
+    targetSystem = new TargetSystem(this);
+    targetSystemRegulator = new Regulator(CONFIG.BOT.TARGET_SYSTEM.UPDATE_FREQUENCY);
+
+    ignoreWeapons = false;
 
     constructor(eid: number, world: CustomWorld) {
         super();
@@ -171,6 +194,9 @@ export class Mob extends Vehicle {
 
     update(delta: number): this {
         super.update(delta);
+        // Сбрасываем каждые 24 часа игрового времени
+        const MAX_GAME_TIME = 24 * 60 * 60; // 24 часа в секундах
+        this.currentTime = (this.currentTime + delta) % MAX_GAME_TIME;
 
         if (!this.navMesh) {
             console.warn(`Mob ${this.eid}: No navMesh available`);
@@ -199,6 +225,40 @@ export class Mob extends Vehicle {
             // update perception
             if (this.visionRegulator.ready()) {
                 this.updateVision();
+            }
+
+            // update memory system
+            this.memorySystem.getValidMemoryRecords(this.currentTime, this.memoryRecords);
+
+            // update target system
+            if (this.targetSystemRegulator.ready()) {
+                this.targetSystem.update();
+            }
+
+            // stop search for attacker if necessary
+            if (this.currentTime >= this.endTimeSearch) {
+                this.resetSearch();
+            }
+
+            // reset ignore flags if necessary
+            if (this.currentTime >= this.endTimeIgnoreHealth) {
+                this.ignoreHealth = false;
+            }
+
+            if (this.currentTime >= this.endTimeIgnoreShotgun) {
+                this.ignoreShotgun = false;
+            }
+
+            if (this.currentTime >= this.endTimeIgnoreAssaultRifle) {
+                this.ignoreAssaultRifle = false;
+            }
+        }
+
+        // handle dying
+        if (this.status === STATUS_DYING) {
+            if (this.currentTime >= this.endTimeDying) {
+                this.status = STATUS_DEAD;
+                this.endTimeDying = Infinity;
             }
         }
 
@@ -401,5 +461,46 @@ export class Mob extends Vehicle {
         }
 
         return ignoreItem;
+    }
+
+    resetSearch() {
+        this.searchAttacker = false;
+        this.attackDirection.set(0, 0, 0);
+        this.endTimeSearch = Infinity;
+        return this;
+    }
+
+    reset() {
+        this.health = this.maxHealth;
+        this.status = STATUS_ALIVE;
+
+        // reset search for attacker
+        this.resetSearch();
+
+        // items
+        this.ignoreHealth = false;
+        this.ignoreWeapons = false;
+
+        // clear brain and memory
+        this.brain.clearSubgoals();
+
+        this.memoryRecords.length = 0;
+        this.memorySystem.clear();
+
+        // reset target and weapon system
+        this.targetSystem.reset();
+        // this.weaponSystem.reset();
+
+        // reset all animations
+        // this.resetAnimations();
+
+        // set default animation
+        if (this.actions) {
+            const run = this.actions['soldier_forward'].play();
+            run.enabled = true;
+        }
+
+        return this;
+
     }
 }

@@ -1,5 +1,5 @@
 import {Suspense, useRef, useState} from "react";
-import {Environment, OrbitControls, Stats} from '@react-three/drei';
+import {Environment, OrbitControls, Sky, Stats} from '@react-three/drei';
 import {Perf} from 'r3f-perf';
 import {useLoaderData} from "@tanstack/react-router";
 import {WorldContextProvider} from "../contexts/WorldContextProvider.tsx";
@@ -9,8 +9,9 @@ import {NavMeshDebug} from "./NavigationDebug.tsx";
 import {Mobs} from "./Mobs.tsx";
 import {Physics, RigidBody} from "@react-three/rapier";
 import Light from "./Light.tsx";
-import GLBModel from "./GLBModel.tsx";
-import SoldierModel from "./GLBModel.tsx";
+import GLBModel from "./SoldierModel.tsx";
+import SoldierModel from "./SoldierModel.tsx";
+import {HealthPack} from "./HealthPack.tsx";
 
 export function Game() {
     const rbRef = useRef(null);
@@ -38,6 +39,34 @@ export function Game() {
 
             <WorldContextProvider levelData={levelData}>
                 <Suspense>
+                    <ambientLight intensity={0.4}/>
+                    <hemisphereLight
+                        args={[0xffffff, 0x444444, 0.4]}
+                        position={[0, 100, 0]}
+                    />
+                    {/*<directionalLight*/}
+                    {/*    castShadow*/}
+                    {/*    intensity={0.8}*/}
+                    {/*    position={[-700, 1000, -750]}*/}
+                    {/*    shadow-mapSize-width={2048}*/}
+                    {/*    shadow-mapSize-height={2048}*/}
+                    {/*    shadow-camera-far={500}*/}
+                    {/*    shadow-camera-left={-100}*/}
+                    {/*    shadow-camera-right={100}*/}
+                    {/*    shadow-camera-top={100}*/}
+                    {/*    shadow-camera-bottom={-100}*/}
+                    {/*/>*/}
+
+                    <Sky
+                        distance={1000}
+                        turbidity={5}
+                        rayleigh={1.5}
+                        sunPosition={[-700, 1000, -750]}
+                    />
+
+                    {/* Дополнительное окружение для лучшего освещения */}
+                    {/*<Environment preset="city"/>*/}
+
                     {/*<ambientLight intensity={1}/>*/}
                     {/*<directionalLight*/}
                     {/*    position={[10, 10, 5]}*/}
@@ -113,6 +142,8 @@ export function Game() {
 
                     </Physics>
                     <Mobs/>
+                    <HealthPack position={[0, -3.5, 0]}/>
+                    <HealthPack position={[1, -3.5, 0]}/>
 
                     {/*<Grid position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}/>*/}
 
@@ -126,7 +157,6 @@ export function Game() {
                     {/*</mesh>*/}
 
                     <NavMeshDebug/>
-
 
 
                     <Stats className="stats"/>

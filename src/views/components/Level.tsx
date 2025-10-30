@@ -1,44 +1,51 @@
 import React, {useLayoutEffect} from "react";
-import {useLoader, useThree} from "@react-three/fiber";
+import {useLoader} from "@react-three/fiber";
 import {GLTFLoader} from "three/examples/jsm/Addons.js";
-import {TextureLoader} from "three";
+import {DoubleSide, Mesh, MeshBasicMaterial, MeshStandardMaterial, TextureLoader} from "three";
 import {useGLTF, useTexture} from '@react-three/drei';
 
 const Level = () => {
     const {scene} = useGLTF('./models/level.glb');
     const lightmap = useTexture('./textures/lightmap.png');
-    const {gl} = useThree();
 
     useLayoutEffect(() => {
         if (!scene || !lightmap) return;
 
-        // Отключаем autoUpdate для всей сцены
-        scene.matrixAutoUpdate = false;
-        scene.updateMatrix();
-
-        scene.traverse((object) => {
-            object.matrixAutoUpdate = false;
-            object.updateMatrix();
-        });
-
-        // Находим меш 'level' и настраиваем материалы
-        const mesh = scene.getObjectByName('level');
-        if (mesh && mesh.material) {
+        const mesh = scene.getObjectByName('level') as Mesh;
+        if (mesh && mesh.isMesh) {
+            const material = mesh.material as MeshBasicMaterial;
             // Настройка lightmap
             lightmap.flipY = false;
-            mesh.material.lightMap = lightmap;
-            mesh.material.lightMapIntensity = 1; // можно настроить интенсивность
+
+            // Создаем новый материал с явным указанием свойств
+            const newMaterial = new MeshStandardMaterial({
+                map: material.map || null,
+                color: material.color,
+                transparent: material.transparent,
+                opacity: material.opacity,
+
+                // Настройки lightmap
+                lightMap: lightmap,
+            });
 
             // Настройка anisotropy для основной текстуры
-            if (mesh.material.map) {
-                mesh.material.map.anisotropy = gl.capabilities.getMaxAnisotropy() || 4;
+            if (newMaterial.map) {
+                newMaterial.map.anisotropy = 4;
             }
 
-            // Обновляем материал
+            mesh.material = newMaterial;
+            // Обновляем материал меша
             mesh.material.needsUpdate = true;
         }
 
-    }, [scene, lightmap, gl]);
+        scene.traverse((child) => {
+            if ((child as Mesh).isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+
+    }, [scene, lightmap]);
 
     return <primitive object={scene}/>;
 }
