@@ -34,7 +34,6 @@ export class FollowPathGoal extends Goal<Mob> {
             const waypoint = path[i];
             followPathBehavior.path.add(waypoint);
         }
-
     }
 
     execute(): void {
@@ -49,8 +48,9 @@ export class FollowPathGoal extends Goal<Mob> {
             return;
         }
 
-        // Проверяем, достигли ли конечной точки пути
-        if (owner.atPosition(path[path.length - 1])) {
+        const atEnd = owner.atPosition(path[path.length - 1]);
+
+        if (atEnd) {
             this.status = Goal.STATUS.COMPLETED;
         }
     }
@@ -68,5 +68,7 @@ export class FollowPathGoal extends Goal<Mob> {
         followPathBehavior.active = false;
         onPathBehavior.active = false;
 
+        // Сбрасываем скорость - это важно!
+        // owner.velocity.set(0, 0, 0);
     }
 }

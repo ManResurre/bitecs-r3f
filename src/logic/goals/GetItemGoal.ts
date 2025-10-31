@@ -4,7 +4,8 @@ import {FollowPathGoal} from './FollowPathGoal.js';
 import {Mob} from "../../entities/Mob.ts";
 import CONFIG from "../../core/Config.ts";
 import {HealthPackEntity} from "../../entities/HealthPackEntity.ts";
-import {healthPackQuery} from "../queries";
+import {findClosestHealthPack} from "../../utils/mobHelper.ts";
+import {PickupItemGoal} from "./PickupItemGoal.ts";
 
 export class GetItemGoal extends CompositeGoal<Mob> {
     item: HealthPackEntity | null = null;
@@ -14,46 +15,26 @@ export class GetItemGoal extends CompositeGoal<Mob> {
         super(owner);
     }
 
-    private findClosestHealthPack(): HealthPackEntity | null {
-        const healthIds = healthPackQuery(this.owner!.world);
-
-        let closestItem = null;
-        let minDistance = Infinity;
-        for (const hpId of healthIds) {
-            const health = this.owner!.world.entityManager.getEntityByName(`healthPack${hpId}`) as HealthPackEntity;
-            const fromRegion = this.owner!.currentRegion!;
-            const toRegion = health.currentRegion!;
-
-            const from = this.owner!.world.navMesh!.getNodeIndex(fromRegion);
-            const to = this.owner!.world.navMesh!.getNodeIndex(toRegion);
-
-            const distance = this.owner!.world.costTable!.get(from, to);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestItem = health;
-            }
-        }
-
-        return closestItem;
-    }
-
     activate() {
         // Находим ближайшую аптечку
         const owner = this.owner;
         if (!owner)
             return;
 
-        const foundHealthPack = this.findClosestHealthPack();
+        this.clearSubgoals();
+
+        const foundHealthPack = findClosestHealthPack(owner);
 
         if (foundHealthPack) {
             this.item = foundHealthPack;
             // if an item was found, try to pick it up
             const from = new Vector3().copy(owner.position);
-            const to = new Vector3().copy(foundHealthPack.position);
+            const to = new Vector3().copy(foundHealthPack.currentRegion!.centroid);
 
             // setup subgoals
             this.addSubgoal(new FindPathGoal(owner, from, to));
             this.addSubgoal(new FollowPathGoal(owner));
+            this.addSubgoal(new PickupItemGoal(owner, foundHealthPack));
 
             return;
         }
@@ -63,16 +44,28 @@ export class GetItemGoal extends CompositeGoal<Mob> {
 
     execute() {
         if (this.active()) {
+            if (!this.owner || !this.item)
+                return;
+
+            // Проверяем, находится ли моб уже достаточно близко к аптечке
+            // if (this.owner && this.item && this.owner.atPosition(this.item.position)) {
+            //     this.status = Goal.STATUS.COMPLETED;
+            //     return;
+            // }
+
+
             // only check the availability of the item if it is visible for the enemy
             if (this.regulator.ready() && this.owner.vision.visible(this.item.position)) {
                 // if it was picked up by somebody else, mark the goal as failed
-                if (this.item.active === false) {
+                if (!this.item.active) {
                     this.status = Goal.STATUS.FAILED;
                 } else {
-                    this.status = this.executeSubgoals();
+                    const subgoalStatus = this.executeSubgoals();
+                    this.status = subgoalStatus;
                 }
             } else {
-                this.status = this.executeSubgoals();
+                const subgoalStatus = this.executeSubgoals();
+                this.status = subgoalStatus;
             }
 
             // replan the goal means the bot tries to find another item of the same type
@@ -82,5 +75,6 @@ export class GetItemGoal extends CompositeGoal<Mob> {
 
     terminate() {
         this.clearSubgoals();
+        this.item = null;
     }
 }

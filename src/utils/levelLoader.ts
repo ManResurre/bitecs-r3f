@@ -6,7 +6,7 @@ export async function loadLevelData(): Promise<LevelData> {
             {
                 name: 'zombie',
                 delay: 5000,
-                max: 4,
+                max: 15,
                 position: [0, 0]
             },
             // {
@@ -17,7 +17,7 @@ export async function loadLevelData(): Promise<LevelData> {
             // }
         ],
         healthPackSpawningPoints: [
-            [-1, -2.92, 0], [33.5, -6.42, 18], [-27, -3.77, -27]
+            [-1, -3.5, 0], [33.5, -7, 18], [-27, -4.2, -27]
         ],
     };
 }

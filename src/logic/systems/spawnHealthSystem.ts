@@ -23,21 +23,30 @@ export const spawnHealthSystem = defineSystem((world: CustomWorld) => {
 
         const healthPacks = healthPackQuery(world)
         if (
-            SpawnComponent.cooldown[spawnId] <= 0 &&
             healthPacks.length < spawns.length
         ) {
-            SpawnComponent.cooldown[spawnId] += SpawnComponent.delay[spawnId];
             const eid = addEntity(world);
-
             addComponent(world, HealthPackComponent, eid);
-
             const name = `healthPack${eid}`;
             HealthPackComponent.entityId[eid] = textEncoder.encode(name);
             const healthPack = new HealthPackEntity(eid, name, world);
-            healthPack.position = new Vector3(PositionComponent.x[spawnId], PositionComponent.y[spawnId], PositionComponent.z[spawnId]);
-
+            healthPack.setPosition(new Vector3(PositionComponent.x[spawnId], PositionComponent.y[spawnId], PositionComponent.z[spawnId]))
             world.entityManager.add(healthPack);
         }
+
+
+        for (const hpId of healthPacks) {
+            const hp = world.entityManager.getEntityByName(`healthPack${hpId}`) as HealthPackEntity
+
+            if (!hp?.active) {
+                hp.respawnTimer -= world.time.delta/1000;
+                if (hp.respawnTimer < 0) {
+                    hp?.setActive(true);
+                    hp.respawnTimer = 30;
+                }
+            }
+        }
+
     }
 
     return world;

@@ -1,7 +1,7 @@
 import {useGLTF} from "@react-three/drei";
-import {useMemo, useRef} from "react";
+import React, {useMemo, useRef} from "react";
 
-export function HealthPack({...props}) {
+const HealthPack = ({...props}) => {
     const groupRef = useRef(null);
     const {scene} = useGLTF("./models/healthPack.glb");
 
@@ -15,3 +15,4 @@ export function HealthPack({...props}) {
         {...props}
     />
 }
+export default React.memo(HealthPack);

@@ -1,4 +1,4 @@
-import {addComponent, addEntity, createWorld, IWorld} from "bitecs";
+import {addComponent, addEntity, createWorld} from "bitecs";
 import {
     HealthPackSpawnComponent,
     ParticleEmitterComponent,

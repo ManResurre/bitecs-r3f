@@ -16,7 +16,7 @@ declare module "@tanstack/react-router" {
 const TanStackRouterDevtools =
   process.env.NODE_ENV === "development"
     ? React.lazy(() =>
-        import("@tanstack/router-devtools").then((response) => ({
+        import("@tanstack/react-router-devtools").then((response) => ({
           default: response.TanStackRouterDevtools,
         }))
       )

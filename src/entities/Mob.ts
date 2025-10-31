@@ -113,7 +113,7 @@ export class Mob extends Vehicle {
         this.navMesh = world.navMesh!;
 
         this.initializePosition();
-        // this.brain.addEvaluator(new ExploreEvaluator());
+        this.brain.addEvaluator(new ExploreEvaluator());
         this.brain.addEvaluator(new GetHealthEvaluator());
 
         // steering behaviors
@@ -394,6 +394,12 @@ export class Mob extends Vehicle {
     }
 
     private calculateAnimationWeights(speed: number) {
+        // Проверяем, что все действия анимации существуют и валидны
+        if (!this.actions) {
+            console.warn('Animation actions not available');
+            return;
+        }
+
         this.positiveWeightings.length = 0;
         let sum = 0;
 
@@ -403,14 +409,21 @@ export class Mob extends Vehicle {
             const dot = this.transformedDirection.dot(this.lookDirection);
             this.weightings[i] = (dot < 0) ? 0 : dot;
 
-            const action = this.actions![DIRECTIONS[i].name];
-            if (action && this.weightings[i] > 0.001) {
-                action.enabled = true;
-                this.positiveWeightings.push(i);
-                sum += this.weightings[i];
-            } else if (action) {
-                action.enabled = false;
-                action.weight = 0;
+            const actionName = DIRECTIONS[i].name;
+            const action = this.actions[actionName];
+
+            // Добавляем проверку на валидность действия
+            if (action && this.isActionValid(action)) {
+                if (this.weightings[i] > 0.001) {
+                    this.ensureActionReady(action);
+                    action.enabled = true;
+                    this.positiveWeightings.push(i);
+                    sum += this.weightings[i];
+                } else {
+                    this.safelyDisableAction(action);
+                }
+            }else {
+                console.log("проблема");
             }
         }
 
@@ -423,11 +436,14 @@ export class Mob extends Vehicle {
         // Нормализуем веса и устанавливаем для анимаций
         for (let i = 0; i < this.positiveWeightings.length; i++) {
             const index = this.positiveWeightings[i];
-            const action = this.actions![DIRECTIONS[index].name];
-            if (action) {
+            const actionName = DIRECTIONS[index].name;
+            const action = this.actions[actionName];
+
+            if (action && this.isActionValid(action)) {
+                this.ensureActionReady(action);
                 action.weight = this.weightings[index] / sum;
                 // Масштабируем скорость анимации в зависимости от фактической скорости
-                action.timeScale = speed / this.maxSpeed;
+                action.timeScale = Math.max(0.1, Math.min(2.0, speed / this.maxSpeed)); // Ограничиваем диапазон
 
                 if (!action.isRunning()) {
                     action.play();
@@ -436,13 +452,44 @@ export class Mob extends Vehicle {
         }
 
         // Выключаем idle анимацию, если активны анимации движения
-        const idleAction = this.actions!['soldier_idle'];
-        if (idleAction) {
-            idleAction.enabled = false;
-            idleAction.weight = 0;
+        const idleAction = this.actions['soldier_idle'];
+        if (idleAction && this.isActionValid(idleAction)) {
+            this.safelyDisableAction(idleAction);
         }
 
         this.currentAnimationState = 'moving';
+    }
+
+// Добавляем вспомогательные методы для безопасной работы с анимациями
+    private isActionValid(action: AnimationAction): boolean {
+        return action !== null && action !== undefined &&
+            typeof action.play === 'function' &&
+            typeof action.stop === 'function';
+    }
+
+    private ensureActionReady(action: AnimationAction): void {
+        try {
+            // Проверяем, что анимация готова к использованию
+            if (!action.getMixer()) {
+                console.warn('Animation action has no mixer');
+                return;
+            }
+        } catch (error) {
+            console.warn('Error checking animation action:', error);
+        }
+    }
+
+    private safelyDisableAction(action: AnimationAction): void {
+        try {
+            if (this.isActionValid(action)) {
+                action.enabled = false;
+                action.weight = 0;
+                // Не останавливаем анимацию полностью, только отключаем
+                // action.stop(); // Это может вызывать проблемы
+            }
+        } catch (error) {
+            console.warn('Error disabling animation action:', error);
+        }
     }
 
     isItemIgnored(type: number) {

@@ -1,6 +1,8 @@
 import {GoalEvaluator} from 'yuka';
 import {Mob} from "../../entities/Mob.ts";
 import {GetItemGoal} from "../goals/GetItemGoal.ts";
+import {findClosestHealthPack} from "../../utils/mobHelper.ts";
+import {HealthPackEntity} from "../../entities/HealthPackEntity.ts";
 
 export class GetHealthEvaluator extends GoalEvaluator<Mob> {
     constructor(characterBias = 1) {
@@ -12,7 +14,13 @@ export class GetHealthEvaluator extends GoalEvaluator<Mob> {
         if (owner.health < owner.maxHealth * 0.5) {
             return 0.8;
         }
-        return 0.1;
+
+        const foundHealthPack = findClosestHealthPack(owner) as HealthPackEntity;
+        if (foundHealthPack && owner.vision.visible(foundHealthPack.position)) {
+            return 0.5;
+        }
+
+        return 0.04;
     }
 
     setGoal(owner: Mob) {

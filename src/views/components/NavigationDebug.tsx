@@ -13,7 +13,6 @@ export const NavMeshDebug = () => {
 
         // Очищаем предыдущую визуализацию
         debugRef.current.clear();
-        console.log('NavMesh regions count:', navMesh.regions.length);
 
         // Проходим по всем регионам навмеша
         navMesh.regions.forEach((region, regionIndex) => {
