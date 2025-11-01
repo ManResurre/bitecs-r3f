@@ -1,70 +1,23 @@
-import { useFrame } from "@react-three/fiber";
-import { useState, useMemo, useRef } from "react";
-import { MobYukaEntityComponent } from "../../logic/components";
-import { useWorld } from "../hooks/useWorld.tsx";
-import { mobsQuery } from "../../logic/queries";
-import { Vector3 } from "three";
+import React, {useState} from "react";
+import {useWorld} from "../hooks/useWorld.tsx";
+import {mobsQuery} from "../../logic/queries";
 import SoldierModel from "./SoldierModel.tsx";
+import {useFrame} from "@react-three/fiber";
 
-const textDecoder = new TextDecoder();
-
-export function Mobs() {
+const Mobs = () => {
     const world = useWorld();
-    const [mobPositions, setMobPositions] = useState<Map<number, Vector3>>(new Map());
-    const mobPositionsRef = useRef(mobPositions);
+    const [count, setCount] = useState(0);
+    const mobs = mobsQuery(world);
 
-    // Обновляем позиции мобов каждый кадр
     useFrame(() => {
-        const mobs = mobsQuery(world);
-        const newPositions = new Map();
+        setCount(mobs.length)
+    })
 
-        let updated = false;
-        for (const eid of mobs) {
-            const mobName = textDecoder.decode(MobYukaEntityComponent.entityId[eid]);
-            const yMob = world.entityManager.getEntityByName(mobName);
+    console.log('enemy:', count);
 
-            if (yMob) {
-                const newPos = new Vector3(yMob.position.x, yMob.position.y, yMob.position.z);
-                const oldPos = mobPositionsRef.current.get(eid);
-
-                // Обновляем только если позиция изменилась
-                if (!oldPos || !oldPos.equals(newPos)) {
-                    newPositions.set(eid, newPos);
-                    updated = true;
-                } else {
-                    newPositions.set(eid, oldPos);
-                }
-            }
-        }
-
-        if (updated) {
-            mobPositionsRef.current = newPositions;
-            setMobPositions(newPositions);
-        }
+    return mobs.map((eid) => {
+        return <SoldierModel key={eid} eid={eid}/>;
     });
-
-    // Мемоизируем компоненты мобов
-    const mobComponents = useMemo(() => {
-        const mobs = mobsQuery(world);
-
-        return mobs.map((eid) => {
-            const position = mobPositions.get(eid);
-
-            if (!position) {
-                return null;
-            }
-
-            return (
-                <SoldierModel key={eid} position={position} eid={eid}/>
-                // <FbxModel
-                //     position={position}
-                //     // rotation={[0, 0, 0]}
-                //     key={eid}
-                //     url="/models/npc/bot.fbx"
-                // />
-            );
-        }).filter(Boolean);
-    }, [world, mobPositions]);
-
-    return <>{mobComponents}</>;
 }
+
+export default React.memo(Mobs)

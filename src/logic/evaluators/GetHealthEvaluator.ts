@@ -15,6 +15,7 @@ export class GetHealthEvaluator extends GoalEvaluator<Mob> {
             return 0.8;
         }
 
+        // Вижу аптечку подберу чтобы другим не досталось
         const foundHealthPack = findClosestHealthPack(owner) as HealthPackEntity;
         if (foundHealthPack && owner.vision.visible(foundHealthPack.position)) {
             return 0.5;

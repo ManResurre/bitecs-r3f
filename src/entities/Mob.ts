@@ -105,6 +105,8 @@ export class Mob extends Vehicle {
 
     ignoreWeapons = false;
 
+    weaponContainer = new GameEntity();
+
     constructor(eid: number, world: CustomWorld) {
         super();
         this.eid = eid;
@@ -140,16 +142,22 @@ export class Mob extends Vehicle {
         this.head.position.y = CONFIG.BOT.HEAD_HEIGHT;
         this.add(this.head);
 
+        // the weapons are attached to the following container entity
+        this.head.add(this.weaponContainer);
+
         this.memorySystem.memorySpan = CONFIG.BOT.MEMORY.SPAN;
     }
 
     private initializePosition(): void {
+        // return;
         if (!this.navMesh) {
             console.warn(`Mob ${this.eid}: NavMesh not available for position initialization`);
             return;
         }
 
-        const region = this.navMesh.getRandomRegion();
+        // const region = this.navMesh.getRandomRegion();
+        const region =    this.navMesh.getRegionForPoint(new Vector3(0,0,0), 4)
+
         if (region) {
             this.position.copy(region.centroid);
             this.currentRegion = region;
@@ -161,6 +169,7 @@ export class Mob extends Vehicle {
     }
 
     stayInLevel() {
+        // return;
         if (!this.currentRegion) {
             this.currentRegion = this.navMesh.getRegionForPoint(this.position, 1);
             if (!this.currentRegion) {
@@ -422,7 +431,7 @@ export class Mob extends Vehicle {
                 } else {
                     this.safelyDisableAction(action);
                 }
-            }else {
+            } else {
                 console.log("проблема");
             }
         }

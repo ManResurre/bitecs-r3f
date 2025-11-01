@@ -1,36 +1,55 @@
 import {useAnimations, useGLTF} from "@react-three/drei";
-import React, {useEffect, useMemo, useRef, useState} from "react";
+import React, {useEffect, useMemo, useRef} from "react";
 import {cloneWithSkinning} from "../../utils/SceneHelper.ts";
 import {Mob} from "../../entities/Mob.ts";
-import {AnimationAction, Quaternion as TREEQuaternion, Vector3 as TREEVector3} from "three";
+import {AnimationAction, Group} from "three";
 import {useWorld} from "../hooks/useWorld.tsx";
 import {useFrame} from "@react-three/fiber";
-import DebugArrows from "./DebugArrows.tsx";
-import {Quaternion, Vector3} from "yuka";
+import AssaultRifle from "./AssaultRifle.tsx";
 
 export interface SoldierModelProps {
     eid: number;
-    position?: TREEVector3;
     scale?: number;
     castShadow?: boolean;
     receiveShadow?: boolean;
     debug?: boolean;
 }
 
-
-const SoldierModel = ({eid, debug = true, position, ...props}: SoldierModelProps) => {
+const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
     const world = useWorld();
-    const groupRef = useRef(null);
+    const groupRef = useRef<Group>(null);
+    const weaponRef = useRef<Group>(null);
     const {scene, animations} = useGLTF("./models/soldier.glb");
     const {actions, names, mixer} = useAnimations(animations, groupRef);
-
-    const [lookDirection, setLookDirection] = useState(new Vector3(0, 0, 1));
-    const [moveDirection, setMoveDirection] = useState(new Vector3(0, 0, 1));
-    const [quaternion, setQuaternion] = useState(new Quaternion());
 
     const clonedScene = useMemo(() => {
         return cloneWithSkinning(scene);
     }, [scene])
+
+    // Находим кость руки для прикрепления оружия
+    const rightHandBone = useMemo(() => {
+        return clonedScene.getObjectByName("Armature_mixamorigRightHand");
+    }, [clonedScene]);
+
+    // Привязываем оружие к кости один раз при монтировании
+    useEffect(() => {
+        if (weaponRef.current && rightHandBone) {
+            if (weaponRef.current.parent) {
+                if (weaponRef.current.parent != rightHandBone) {
+                    weaponRef.current.parent.remove(weaponRef.current);
+                }
+            }
+
+            if (!weaponRef.current.parent) {
+                rightHandBone.add(weaponRef.current);
+                console.log("Оружие привязано к кости");
+                // Устанавливаем локальную позицию относительно кости
+                weaponRef.current.position.set(-5, 20, 7);
+                weaponRef.current.rotation.set(Math.PI / 2.15, Math.PI, 0);
+                weaponRef.current.scale.set(100, 100, 100); // Увеличиваем масштаб
+            }
+        }
+    }, [rightHandBone]);
 
     useEffect(() => {
         // Сохраняем миксер в компонент Mob
@@ -43,10 +62,9 @@ const SoldierModel = ({eid, debug = true, position, ...props}: SoldierModelProps
     // Обновляем направления в useFrame
     useFrame(() => {
         const mobEntity: Mob = world.entityManager?.getEntityByName(`mob_${eid}`) as Mob;
-        if (mobEntity) {
-            setLookDirection(mobEntity.lookDirection.clone());
-            setMoveDirection(mobEntity.moveDirection.clone());
-            setQuaternion(mobEntity.rotation.clone());
+        if (mobEntity && groupRef.current) {
+            groupRef.current.position.copy(mobEntity.position.clone())
+            groupRef.current.quaternion.copy(mobEntity.rotation.clone());
         }
     });
 
@@ -54,18 +72,11 @@ const SoldierModel = ({eid, debug = true, position, ...props}: SoldierModelProps
         <>
             <primitive
                 ref={groupRef}
-                position={position}
-                quaternion={new TREEQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w)}
                 object={clonedScene}
                 {...props}
             />
-            {debug && (
-                <DebugArrows
-                    position={position!}
-                    lookDirection={lookDirection}
-                    moveDirection={moveDirection}
-                />
-            )}
+
+            <AssaultRifle ref={weaponRef}/>
         </>
     );
 };
