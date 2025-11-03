@@ -19,11 +19,11 @@ export function Game() {
 
             <WorldContextProvider levelData={levelData}>
                 <Suspense>
-                    <ambientLight intensity={0.4}/>
-                    <hemisphereLight
-                        args={[0xffffff, 0x444444, 0.4]}
-                        position={[0, 100, 0]}
-                    />
+                    <ambientLight intensity={0.04}/>
+                    {/*<hemisphereLight*/}
+                    {/*    args={[0xffffff, 0x444444, 0.4]}*/}
+                    {/*    position={[0, 100, 0]}*/}
+                    {/*/>*/}
                     {/*<directionalLight*/}
                     {/*    castShadow*/}
                     {/*    intensity={0.8}*/}

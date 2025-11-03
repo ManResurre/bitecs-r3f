@@ -6,7 +6,6 @@ import {
     WEAPON_STATUS_HIDE
 } from '../core/Constants.js';
 import {Mob} from "./Mob.ts";
-import {Sprite} from "three";
 
 export abstract class Weapon extends GameEntity {
     owner: Mob;
@@ -37,7 +36,6 @@ export abstract class Weapon extends GameEntity {
     abstract fuzzyModule: FuzzyModule;
 
     // render specific properties
-    abstract muzzle: Sprite;
     audios = null;
     mixer = null;
     animations = null;

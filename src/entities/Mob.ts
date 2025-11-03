@@ -19,10 +19,12 @@ import {
     WEAPON_TYPES_ASSAULT_RIFLE,
     WEAPON_TYPES_SHOTGUN
 } from "../core/Constants.ts";
-import {AnimationAction, AnimationMixer} from "three";
+import {AnimationAction, AnimationMixer, Group} from "three";
 import {mobsQuery} from "../logic/queries";
 import {TargetSystem} from "../core/TargetSystem.ts";
 import {GetHealthEvaluator} from "../logic/evaluators/GetHealthEvaluator.ts";
+import {AssaultRifle} from "./AssaultRifle.ts";
+import {RefObject} from "react";
 
 // Константы для системы анимаций
 const DIRECTIONS = [
@@ -107,6 +109,8 @@ export class Mob extends Vehicle {
 
     weaponContainer = new GameEntity();
 
+    weaponRef?: RefObject<Group>;
+
     constructor(eid: number, world: CustomWorld) {
         super();
         this.eid = eid;
@@ -146,6 +150,9 @@ export class Mob extends Vehicle {
         this.head.add(this.weaponContainer);
 
         this.memorySystem.memorySpan = CONFIG.BOT.MEMORY.SPAN;
+
+        // const ar = new AssaultRifle(this);
+        // this.weaponContainer.add(ar);
     }
 
     private initializePosition(): void {
@@ -156,7 +163,7 @@ export class Mob extends Vehicle {
         }
 
         // const region = this.navMesh.getRandomRegion();
-        const region =    this.navMesh.getRegionForPoint(new Vector3(0,0,0), 4)
+        const region = this.navMesh.getRegionForPoint(new Vector3(0, 0, 0), 4)
 
         if (region) {
             this.position.copy(region.centroid);

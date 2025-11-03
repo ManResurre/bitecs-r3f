@@ -44,7 +44,6 @@ export class PickupItemGoal extends Goal<Mob> {
         const distance = this.owner.position.distanceTo(this.item.position);
 
         if (distance <= 2) {
-            console.log('Подбираем аптечку');
             // Подбираем аптечку
             this.owner.health = 100;
             this.item.setActive(false);

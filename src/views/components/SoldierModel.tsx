@@ -1,8 +1,8 @@
 import {useAnimations, useGLTF} from "@react-three/drei";
-import React, {useEffect, useMemo, useRef} from "react";
+import React, {RefObject, useEffect, useMemo, useRef} from "react";
 import {cloneWithSkinning} from "../../utils/SceneHelper.ts";
 import {Mob} from "../../entities/Mob.ts";
-import {AnimationAction, Group} from "three";
+import {AnimationAction, Group, Vector3} from "three";
 import {useWorld} from "../hooks/useWorld.tsx";
 import {useFrame} from "@react-three/fiber";
 import AssaultRifle from "./AssaultRifle.tsx";
@@ -18,7 +18,7 @@ export interface SoldierModelProps {
 const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
     const world = useWorld();
     const groupRef = useRef<Group>(null);
-    const weaponRef = useRef<Group>(null);
+    const weaponRef = useRef<Group>(null) as RefObject<Group>;
     const {scene, animations} = useGLTF("./models/soldier.glb");
     const {actions, names, mixer} = useAnimations(animations, groupRef);
 
@@ -42,7 +42,7 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
 
             if (!weaponRef.current.parent) {
                 rightHandBone.add(weaponRef.current);
-                console.log("Оружие привязано к кости");
+                // console.log("Оружие привязано к кости");
                 // Устанавливаем локальную позицию относительно кости
                 weaponRef.current.position.set(-5, 20, 7);
                 weaponRef.current.rotation.set(Math.PI / 2.15, Math.PI, 0);
@@ -55,6 +55,7 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
         // Сохраняем миксер в компонент Mob
         const mobEntity: Mob = world.entityManager?.getEntityByName(`mob_${eid}`) as Mob;
         if (mobEntity) {
+            mobEntity.weaponRef = weaponRef;
             mobEntity.setAnimations(mixer, actions as Record<string, AnimationAction>, names);
         }
     }, [mixer, actions, eid, world.entityManager, names]);

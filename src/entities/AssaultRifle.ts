@@ -30,6 +30,8 @@ export class AssaultRifle extends Weapon {
 
     fuzzyModule = new FuzzyModule();
 
+    muzzle = {visible: false}
+
     constructor(owner: Mob) {
         super(owner);
     }
@@ -182,5 +184,6 @@ export class AssaultRifle extends Weapon {
         // return this;
 
     }
+
 
 }
