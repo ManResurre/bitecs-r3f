@@ -283,6 +283,12 @@ export class Mob extends Vehicle {
         return this;
     }
 
+    removeEntityFromMemory(entity: GameEntity) {
+        this.memorySystem.deleteRecord(entity);
+        this.memorySystem.getValidMemoryRecords(this.currentTime, this.memoryRecords);
+        return this;
+    }
+
     updateVision() {
         // 1. Получаем ссылки на систему памяти и зрение текущего врага
         const memorySystem = this.memorySystem;

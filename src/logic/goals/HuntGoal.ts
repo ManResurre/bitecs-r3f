@@ -1,4 +1,4 @@
-import {Goal, CompositeGoal, Vector3} from 'yuka';
+import {Goal, CompositeGoal, Vector3, GameEntity} from 'yuka';
 import {FollowPathGoal} from './FollowPathGoal.js';
 import {FindPathGoal} from './FindPathGoal.js';
 import {Mob} from "../../entities/Mob.ts";
@@ -17,6 +17,8 @@ class HuntGoal extends CompositeGoal<Mob> {
 
         // seek to the last sensed position
         const targetPosition = owner.targetSystem.getLastSensedPosition();
+        if (!targetPosition)
+            return;
 
         // it's important to use path finding since there might be obstacle
         // between the current and target position
@@ -43,7 +45,7 @@ class HuntGoal extends CompositeGoal<Mob> {
             // if the enemy is at the last sensed position, forget about
             // the bot, update the target system and consider this goal as completed
             if (this.completed()) {
-                const target = owner.targetSystem.getTarget();
+                const target = owner.targetSystem.getTarget() as GameEntity;
                 owner.removeEntityFromMemory(target);
                 owner.targetSystem.update();
             } else {

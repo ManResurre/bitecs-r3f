@@ -2,7 +2,7 @@ import {useAnimations, useGLTF} from "@react-three/drei";
 import React, {RefObject, useEffect, useMemo, useRef} from "react";
 import {cloneWithSkinning} from "../../utils/SceneHelper.ts";
 import {Mob} from "../../entities/Mob.ts";
-import {AnimationAction, Group, Vector3} from "three";
+import {AnimationAction, Group} from "three";
 import {useWorld} from "../hooks/useWorld.tsx";
 import {useFrame} from "@react-three/fiber";
 import AssaultRifle from "./AssaultRifle.tsx";

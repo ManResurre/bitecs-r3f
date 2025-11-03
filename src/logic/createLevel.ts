@@ -19,7 +19,7 @@ export function createLevel(levelData: LevelData) {
         },
         rigidBodies: new Map(),
         entityManager: new EntityManager(),
-
+        muzzleFlashSystem : new Map()
 
     }) as CustomWorld;
 

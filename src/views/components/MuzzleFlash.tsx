@@ -1,13 +1,13 @@
-import React, {useRef, useMemo} from 'react';
+import React, {useRef, useMemo, JSX, useImperativeHandle} from 'react';
 import {useFrame} from '@react-three/fiber';
 import {Sprite, SpriteMaterial, Vector3} from 'three';
 import {useTexture} from '@react-three/drei';
+import {useWorld} from "../hooks/useWorld.tsx";
 
-interface MuzzleFlashProps {
-    position?: Vector3;
+type MuzzleFlashRef = Sprite;
+type MuzzleFlashProps = JSX.IntrinsicElements['sprite'] & {
     visible?: boolean;
     size?: number;
-    name?: string;
 }
 
 const MuzzleFlash = ({
@@ -15,8 +15,11 @@ const MuzzleFlash = ({
                          visible = false,
                          size = 0.3,
                          ...rest
-                     }: MuzzleFlashProps) => {
+                     }: MuzzleFlashProps, forwardedRef: React.ForwardedRef<MuzzleFlashRef>) => {
+    const world = useWorld();
     const spriteRef = useRef<Sprite>(null);
+    // Синхронизируем внешний и внутренний ref
+    useImperativeHandle(forwardedRef, () => spriteRef.current!, []);
 
     // Загружаем текстуру через useTexture из drei (более удобно чем TextureLoader)
     const muzzleTexture = useTexture('./textures/muzzle.png');
@@ -41,6 +44,16 @@ const MuzzleFlash = ({
                 const material = spriteRef.current.material as SpriteMaterial;
                 material.rotation += 0.1; // Вращение для эффекта
             }
+            if (world.muzzleFlashSystem && visible) {
+                const muzzlePosition = new Vector3();
+                const addFlashToQueue = world.muzzleFlashSystem.get('addFlashToQueue');
+                spriteRef.current.getWorldPosition(muzzlePosition);
+                if (addFlashToQueue)
+                    addFlashToQueue(
+                        muzzlePosition,
+                        25, // интенсивность
+                    );
+            }
         }
     });
 
@@ -53,4 +66,4 @@ const MuzzleFlash = ({
     />;
 };
 
-export default React.memo(MuzzleFlash);
+export default React.memo(React.forwardRef(MuzzleFlash));

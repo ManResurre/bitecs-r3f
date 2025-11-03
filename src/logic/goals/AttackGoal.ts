@@ -1,12 +1,12 @@
 import {Goal, CompositeGoal, Vector3} from 'yuka';
 import {Mob} from "../../entities/Mob.ts";
+import {DodgeGoal} from "./DodgeGoal.ts";
 
 const left = new Vector3(-1, 0, 0);
 const right = new Vector3(1, 0, 0);
 const targetPosition = new Vector3();
 
 export class AttackGoal extends CompositeGoal<Mob> {
-
     constructor(owner: Mob) {
         super(owner);
     }

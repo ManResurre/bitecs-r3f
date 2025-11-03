@@ -3,11 +3,10 @@ import Level from "./Level.tsx";
 import {NavMeshDebug} from "./NavigationDebug.tsx";
 import HealthPackList from "./HealthPackList.tsx";
 import Mobs from "./Mobs.tsx";
-import {GlobalMuzzleLights} from "./GlobalMuzzleLight.tsx";
 import MuzzleLight from "./MuzzleLight.tsx";
+import BulletLine from "./BulletLine.tsx";
 
 const GameScene = () => {
-
 
     return <>
         <Level/>
@@ -15,7 +14,7 @@ const GameScene = () => {
         <HealthPackList/>
         <Mobs/>
         <MuzzleLight/>
-        {/*<GlobalMuzzleLights/>*/}
+
     </>;
 }
 

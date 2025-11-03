@@ -48,6 +48,8 @@ export class PickupItemGoal extends Goal<Mob> {
             this.owner.health = 100;
             this.item.setActive(false);
             this.status = Goal.STATUS.COMPLETED;
+
+            this.owner.removeEntityFromMemory(this.item);
         } else {
             // this.status = Goal.STATUS.FAILED;
         }
