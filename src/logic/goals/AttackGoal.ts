@@ -1,10 +1,7 @@
-import {Goal, CompositeGoal, Vector3} from 'yuka';
+import {Goal, CompositeGoal} from 'yuka';
 import {Mob} from "../../entities/Mob.ts";
-import {DodgeGoal} from "./DodgeGoal.ts";
-
-const left = new Vector3(-1, 0, 0);
-const right = new Vector3(1, 0, 0);
-const targetPosition = new Vector3();
+import {HuntGoal} from "./HuntGoal.ts";
+import {MaintainDistanceGoal} from "./MaintainDistanceGoal.ts";
 
 export class AttackGoal extends CompositeGoal<Mob> {
     constructor(owner: Mob) {
@@ -12,50 +9,34 @@ export class AttackGoal extends CompositeGoal<Mob> {
     }
 
     activate() {
-        // if this goal is reactivated then there may be some existing subgoals that must be removed
         this.clearSubgoals();
 
         const owner = this.owner;
-        if(!owner)
+        if (!owner)
             return;
 
-        // if the enemy is able to shoot the target (there is line of sight between enemy and
-        // target), then select a tactic to follow while shooting
-        if (owner.targetSystem.isTargetShootable() === true) {
-            // if the enemy has space to strafe then do so
-            if (owner.canMoveInDirection(left, targetPosition)) {
-                this.addSubgoal(new DodgeGoal(owner, false));
-            } else if (owner.canMoveInDirection(right, targetPosition)) {
-                this.addSubgoal(new DodgeGoal(owner, true));
-            } else {
-                // if not able to strafe, charge at the target's position
-                this.addSubgoal(new ChargeGoal(owner));
-            }
+        console.log(`Mob ${owner.eid} AttackGoal`);
+
+        if (owner.targetSystem.isTargetShootable()) {
+            // Используем тактику поддержания дистанции вместо уклонения
+            this.addSubgoal(new MaintainDistanceGoal(owner));
         } else {
-            // if the target is not visible, go hunt it
+            // Если цель не видна, идем на поиски
             this.addSubgoal(new HuntGoal(owner));
         }
     }
 
     execute() {
-        // it is possible for a enemy's target to die while this goal is active so we
-        // must test to make sure the enemy always has an active target
         const owner = this.owner;
-        if(!owner)
+        if (!owner)
             return;
 
-        if (owner.targetSystem.hasTarget() === false) {
+        if (!owner.targetSystem.hasTarget()) {
             this.status = Goal.STATUS.COMPLETED;
         } else {
-            const currentSubgoal = this.currentSubgoal();
             const status = this.executeSubgoals();
-            if (currentSubgoal instanceof DodgeGoal && currentSubgoal.inactive()) {
-                // inactive dogde goals should be reactivated but without reactivating the enire attack goal
-                this.status = Goal.STATUS.ACTIVE;
-            } else {
-                this.status = status;
-                this.replanIfFailed();
-            }
+            this.status = status;
+            this.replanIfFailed();
         }
     }
 

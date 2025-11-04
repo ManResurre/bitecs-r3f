@@ -3,7 +3,7 @@ import {FollowPathGoal} from './FollowPathGoal.js';
 import {FindPathGoal} from './FindPathGoal.js';
 import {Mob} from "../../entities/Mob.ts";
 
-class HuntGoal extends CompositeGoal<Mob> {
+export class HuntGoal extends CompositeGoal<Mob> {
     constructor(owner: Mob) {
         super(owner);
     }
@@ -14,6 +14,8 @@ class HuntGoal extends CompositeGoal<Mob> {
         if (!owner) {
             return;
         }
+
+        console.log(`Mob ${owner.eid} HuntGoal`);
 
         // seek to the last sensed position
         const targetPosition = owner.targetSystem.getLastSensedPosition();

@@ -1,12 +1,13 @@
 import {Mob} from "../entities/Mob.ts";
 import {MemoryRecord} from "yuka";
 
-const visibleRecords: MemoryRecord[] = [];
-const invisibleRecords: MemoryRecord[] = [];
-
 
 export class TargetSystem {
     owner: Mob;
+
+    visibleRecords: MemoryRecord[] = [];
+    invisibleRecords: MemoryRecord[] = [];
+
     private currentRecord: MemoryRecord | null = null;
 
     constructor(owner: Mob) {
@@ -16,36 +17,33 @@ export class TargetSystem {
     update() {
         const records: MemoryRecord[] = this.owner.memoryRecords;
         this.currentRecord = null;
-        visibleRecords.length = 0;
-        invisibleRecords.length = 0;
+        this.visibleRecords.length = 0;
+        this.invisibleRecords.length = 0;
 
         // sort records according to their visibility
-        for (let i = 0, l = records.length; i < l; i++) {
-            const record = records[i];
+        for (const record of records) {
             if (record.visible) {
-                visibleRecords.push(record);
+                this.visibleRecords.push(record);
             } else {
-                invisibleRecords.push(record);
+                this.invisibleRecords.push(record);
             }
         }
 
         // record selection
-        if (visibleRecords.length > 0) {
+        if (this.visibleRecords.length > 0) {
             // if there are visible records, select the closest one
             let minDistance = Infinity;
-            for (let i = 0, l = visibleRecords.length; i < l; i++) {
-                const record = visibleRecords[i];
+            for (const record of this.visibleRecords) {
                 const distance = this.owner.position.squaredDistanceTo(record.lastSensedPosition);
                 if (distance < minDistance) {
                     minDistance = distance;
                     this.currentRecord = record;
                 }
             }
-        } else if (invisibleRecords.length > 0) {
+        } else if (this.invisibleRecords.length > 0) {
             // if there are invisible records, select the one that was last sensed
             let maxTimeLastSensed = -Infinity;
-            for (let i = 0, l = invisibleRecords.length; i < l; i++) {
-                const record = invisibleRecords[i];
+            for (const record of this.invisibleRecords) {
                 if (record.timeLastSensed > maxTimeLastSensed) {
                     maxTimeLastSensed = record.timeLastSensed;
                     this.currentRecord = record;

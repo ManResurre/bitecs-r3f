@@ -23,8 +23,8 @@ import {AnimationAction, AnimationMixer, Group} from "three";
 import {mobsQuery} from "../logic/queries";
 import {TargetSystem} from "../core/TargetSystem.ts";
 import {GetHealthEvaluator} from "../logic/evaluators/GetHealthEvaluator.ts";
-import {AssaultRifle} from "./AssaultRifle.ts";
 import {RefObject} from "react";
+import {AttackEvaluator} from "../logic/evaluators/AttackEvaluator.ts";
 
 // Константы для системы анимаций
 const DIRECTIONS = [
@@ -34,13 +34,18 @@ const DIRECTIONS = [
     {direction: new Vector3(1, 0, 0), name: 'soldier_right'}
 ];
 
-const worldPosition = new Vector3();
-
 export class Mob extends Vehicle {
     public eid: number;
     public navMesh: NavMesh;
     public world: CustomWorld;
     private initialized = false;
+
+    // Временные векторы для вычислений
+    private tempForward = new Vector3(0, 0, 1);
+    private tempUp = new Vector3(0, 1, 0);
+    private tempVector = new Vector3();
+
+    worldPosition = new Vector3();
 
     health = CONFIG.BOT.MAX_HEALTH;
     maxHealth = CONFIG.BOT.MAX_HEALTH;
@@ -64,10 +69,10 @@ export class Mob extends Vehicle {
     actionsNames?: string[];
 
     // Система смешивания анимаций
-    public lookDirection = new Vector3();
-    public moveDirection = new Vector3();
+    public lookDirection = new Vector3(0, 0, 1);
+    public moveDirection = new Vector3(0, 0, 1);
 
-    private quaternion = new Quaternion();
+    public quaternion = new Quaternion();
     private transformedDirection = new Vector3();
     private weightings: number[] = [0, 0, 0, 0];
     private positiveWeightings: number[] = [];
@@ -104,12 +109,22 @@ export class Mob extends Vehicle {
     // target system
     targetSystem = new TargetSystem(this);
     targetSystemRegulator = new Regulator(CONFIG.BOT.TARGET_SYSTEM.UPDATE_FREQUENCY);
+    displacement = new Vector3();
+    targetPosition = new Vector3();
 
     ignoreWeapons = false;
 
     weaponContainer = new GameEntity();
 
     weaponRef?: RefObject<Group>;
+
+    attackRange = {
+        desired: 15,
+        min: 8,
+        max: 20
+    };
+
+    reactionTime = CONFIG.BOT.WEAPON.REACTION_TIME;
 
     constructor(eid: number, world: CustomWorld) {
         super();
@@ -118,7 +133,11 @@ export class Mob extends Vehicle {
         this.world = world;
         this.navMesh = world.navMesh!;
 
+        // Инициализируем направление взгляда
+        // this.lookDirection.copy(this.forward);
+
         this.initializePosition();
+        this.brain.addEvaluator(new AttackEvaluator());
         this.brain.addEvaluator(new ExploreEvaluator());
         this.brain.addEvaluator(new GetHealthEvaluator());
 
@@ -151,12 +170,11 @@ export class Mob extends Vehicle {
 
         this.memorySystem.memorySpan = CONFIG.BOT.MEMORY.SPAN;
 
-        // const ar = new AssaultRifle(this);
-        // this.weaponContainer.add(ar);
+        this.vision.fieldOfView = Math.PI; // 180 градусов
+        this.vision.range = 50;
     }
 
     private initializePosition(): void {
-        // return;
         if (!this.navMesh) {
             console.warn(`Mob ${this.eid}: NavMesh not available for position initialization`);
             return;
@@ -176,7 +194,6 @@ export class Mob extends Vehicle {
     }
 
     stayInLevel() {
-        // return;
         if (!this.currentRegion) {
             this.currentRegion = this.navMesh.getRegionForPoint(this.position, 1);
             if (!this.currentRegion) {
@@ -212,8 +229,15 @@ export class Mob extends Vehicle {
 
     update(delta: number): this {
         super.update(delta);
-        // Сбрасываем каждые 24 часа игрового времени
-        const MAX_GAME_TIME = 24 * 60 * 60; // 24 часа в секундах
+
+        // Обновляем направление движения
+        if (this.velocity.squaredLength() > 0.01) {
+            this.moveDirection.copy(this.velocity).normalize();
+        } else {
+            this.moveDirection.set(0, 0, 0);
+        }
+
+        const MAX_GAME_TIME = 24 * 60 * 60;
         this.currentTime = (this.currentTime + delta) % MAX_GAME_TIME;
 
         if (!this.navMesh) {
@@ -258,18 +282,7 @@ export class Mob extends Vehicle {
                 this.resetSearch();
             }
 
-            // reset ignore flags if necessary
-            if (this.currentTime >= this.endTimeIgnoreHealth) {
-                this.ignoreHealth = false;
-            }
-
-            if (this.currentTime >= this.endTimeIgnoreShotgun) {
-                this.ignoreShotgun = false;
-            }
-
-            if (this.currentTime >= this.endTimeIgnoreAssaultRifle) {
-                this.ignoreAssaultRifle = false;
-            }
+            this.updateAimAndShot(delta)
         }
 
         // handle dying
@@ -290,54 +303,40 @@ export class Mob extends Vehicle {
     }
 
     updateVision() {
-        // 1. Получаем ссылки на систему памяти и зрение текущего врага
+        if (!this.vision.obstacles.length && this.world.level) {
+            this.vision.addObstacle(this.world.level);
+        }
+
         const memorySystem = this.memorySystem;
         const vision = this.vision;
 
-        // 2. Получаем список всех "конкурентов" (других сущностей в мире)
         const mobIds = mobsQuery(this.world);
-        // this.eid
 
-        // 3. Перебираем всех конкурентов в цикле
         for (const mobId of mobIds) {
-            // 4. Пропускаем самого себя и мертвых сущностей
             if (this.eid == mobId) continue;
 
             const competitor = this.world.entityManager.getEntityByName(`mob_${mobId}`) as Mob;
             if (!competitor || competitor.status !== STATUS_ALIVE) continue;
 
-            // Создаем запись если её нет и сразу получаем её
             if (!memorySystem.hasRecord(competitor)) {
                 memorySystem.createRecord(competitor);
             }
 
-            // 6. Получаем запись о конкуренте из памяти
             const record = memorySystem.getRecord(competitor);
 
-            // Если запись все равно undefined - пропускаем
             if (!record) {
                 console.warn(`Could not get record for competitor ${mobId}`);
                 continue;
             }
 
-            // 7. Получаем мировую позицию головы конкурента
-            competitor.head.getWorldPosition(worldPosition);
+            competitor.head.getWorldPosition(this.worldPosition);
 
-            // 8. Проверяем, видна ли голова конкурента
-            if (vision.visible(worldPosition) && competitor.active) {
-                // 9. Если видна - обновляем время последнего обнаружения
+            if (vision.visible(this.worldPosition) && competitor.active) {
                 record.timeLastSensed = this.currentTime;
-
-                // 10. Сохраняем последнюю обнаруженную позицию (тела, а не головы)
                 record.lastSensedPosition.copy(competitor.position);
-
-                // 11. Если конкурент стал видимым только что - запоминаем время
                 if (record.visible === false) record.timeBecameVisible = this.currentTime;
-
-                // 12. Помечаем конкурента как видимого
                 record.visible = true;
             } else {
-                // 13. Если не виден - помечаем как невидимого
                 record.visible = false;
             }
         }
@@ -356,44 +355,15 @@ export class Mob extends Vehicle {
         this.actions = actions;
         this.actionsNames = names;
 
-        // Запускаем idle анимацию по умолчанию
         if (this.actions['soldier_idle']) {
             this.actions['soldier_idle'].play();
         }
     }
 
-    updateAnimations() {
-        if (!this.mixer || !this.actions) return this;
-
-        // Обновляем микшер анимаций
-        // this.mixer.update(delta);
-
-        if (this.status === STATUS_ALIVE) {
-            // Получаем направления
-            this.getDirection(this.lookDirection);
-            this.moveDirection.copy(this.velocity).normalize();
-
-            // Если скорость очень мала, используем idle анимацию
-            const speed = this.getSpeed();
-            if (speed < 0.1) {
-                this.setIdleAnimation();
-                return this;
-            }
-
-            // Вычисляем вращение для преобразования направлений
-            this.quaternion.lookAt(this.forward, this.moveDirection, this.up);
-
-            // Вычисляем веса для анимаций движения
-            this.calculateAnimationWeights(speed);
-        }
-
-        return this;
-    }
 
     private setIdleAnimation() {
         if (this.currentAnimationState === 'idle') return;
 
-        // Выключаем все анимации движения
         for (const direction of DIRECTIONS) {
             const action = this.actions![direction.name];
             if (action) {
@@ -402,7 +372,6 @@ export class Mob extends Vehicle {
             }
         }
 
-        // Включаем idle анимацию
         const idleAction = this.actions!['soldier_idle'];
         if (idleAction) {
             idleAction.enabled = true;
@@ -415,47 +384,77 @@ export class Mob extends Vehicle {
         this.currentAnimationState = 'idle';
     }
 
-    private calculateAnimationWeights(speed: number) {
-        // Проверяем, что все действия анимации существуют и валидны
+    updateAnimations() {
+        if (!this.mixer || !this.actions) return this;
+
+        if (this.status === STATUS_ALIVE) {
+            const speed = this.getSpeed();
+
+            if (speed < 0.1) {
+                this.setIdleAnimation();
+                return this;
+            }
+
+            this.quaternion.lookAt(
+                this.tempForward,
+                this.lookDirection,
+                this.tempUp
+            );
+
+            this.calculateAnimationWeights(speed, this.lookDirection, this.moveDirection);
+        }
+
+        return this;
+    }
+
+    private calculateAnimationWeights(speed: number, testLookDirection?: Vector3, testMoveDirection?: Vector3) {
         if (!this.actions) {
             console.warn('Animation actions not available');
             return;
         }
 
+        // Используем тестовые векторы если предоставлены, иначе реальные
+        const lookDir = testLookDirection || this.lookDirection;
+        const moveDir = testMoveDirection || this.moveDirection;
+
+        // ВАЖНОЕ ИСПРАВЛЕНИЕ: Правильная логика из оригинального Enemy
         this.positiveWeightings.length = 0;
         let sum = 0;
 
-        // Вычисляем веса для каждого направления
+        // Вычисляем кватернион для преобразования направлений
+        // В оригинале это делается на основе разницы между forward и moveDirection
+        const rotationQuaternion = new Quaternion();
+        rotationQuaternion.lookAt(this.tempForward, moveDir, this.tempUp);
+
         for (let i = 0; i < DIRECTIONS.length; i++) {
-            this.transformedDirection.copy(DIRECTIONS[i].direction).applyRotation(this.quaternion);
-            const dot = this.transformedDirection.dot(this.lookDirection);
+            // Преобразуем локальное направление в мировое пространство
+            this.transformedDirection.copy(DIRECTIONS[i].direction).applyRotation(rotationQuaternion);
+
+            // Вычисляем скалярное произведение с направлением взгляда
+            const dot = this.transformedDirection.dot(lookDir);
             this.weightings[i] = (dot < 0) ? 0 : dot;
 
             const actionName = DIRECTIONS[i].name;
             const action = this.actions[actionName];
 
-            // Добавляем проверку на валидность действия
             if (action && this.isActionValid(action)) {
                 if (this.weightings[i] > 0.001) {
                     this.ensureActionReady(action);
                     action.enabled = true;
                     this.positiveWeightings.push(i);
                     sum += this.weightings[i];
+
                 } else {
                     this.safelyDisableAction(action);
                 }
-            } else {
-                console.log("проблема");
             }
         }
 
-        // Если нет активных анимаций, используем idle
         if (this.positiveWeightings.length === 0) {
             this.setIdleAnimation();
             return;
         }
 
-        // Нормализуем веса и устанавливаем для анимаций
         for (let i = 0; i < this.positiveWeightings.length; i++) {
             const index = this.positiveWeightings[i];
             const actionName = DIRECTIONS[index].name;
@@ -464,8 +463,7 @@ export class Mob extends Vehicle {
             if (action && this.isActionValid(action)) {
                 this.ensureActionReady(action);
                 action.weight = this.weightings[index] / sum;
-                // Масштабируем скорость анимации в зависимости от фактической скорости
-                action.timeScale = Math.max(0.1, Math.min(2.0, speed / this.maxSpeed)); // Ограничиваем диапазон
+                action.timeScale = Math.max(0.1, Math.min(2.0, speed / this.maxSpeed));
 
                 if (!action.isRunning()) {
                     action.play();
@@ -473,7 +471,6 @@ export class Mob extends Vehicle {
             }
         }
 
-        // Выключаем idle анимацию, если активны анимации движения
         const idleAction = this.actions['soldier_idle'];
         if (idleAction && this.isActionValid(idleAction)) {
             this.safelyDisableAction(idleAction);
@@ -482,7 +479,6 @@ export class Mob extends Vehicle {
         this.currentAnimationState = 'moving';
     }
 
-// Добавляем вспомогательные методы для безопасной работы с анимациями
     private isActionValid(action: AnimationAction): boolean {
         return action !== null && action !== undefined &&
             typeof action.play === 'function' &&
@@ -491,7 +487,6 @@ export class Mob extends Vehicle {
 
     private ensureActionReady(action: AnimationAction): void {
         try {
-            // Проверяем, что анимация готова к использованию
             if (!action.getMixer()) {
                 console.warn('Animation action has no mixer');
                 return;
@@ -506,8 +501,6 @@ export class Mob extends Vehicle {
             if (this.isActionValid(action)) {
                 action.enabled = false;
                 action.weight = 0;
-                // Не останавливаем анимацию полностью, только отключаем
-                // action.stop(); // Это может вызывать проблемы
             }
         } catch (error) {
             console.warn('Error disabling animation action:', error);
@@ -545,33 +538,100 @@ export class Mob extends Vehicle {
         this.health = this.maxHealth;
         this.status = STATUS_ALIVE;
 
-        // reset search for attacker
         this.resetSearch();
 
-        // items
         this.ignoreHealth = false;
         this.ignoreWeapons = false;
 
-        // clear brain and memory
         this.brain.clearSubgoals();
 
         this.memoryRecords.length = 0;
         this.memorySystem.clear();
 
-        // reset target and weapon system
         this.targetSystem.reset();
-        // this.weaponSystem.reset();
 
-        // reset all animations
-        // this.resetAnimations();
-
-        // set default animation
         if (this.actions) {
             const run = this.actions['soldier_forward'].play();
             run.enabled = true;
         }
 
         return this;
+    }
 
+    canMoveInDirection(direction: Vector3, position: Vector3) {
+        position.copy(direction).applyRotation(this.rotation).normalize();
+        position.multiplyScalar(CONFIG.BOT.MOVEMENT.DODGE_SIZE).add(this.position);
+
+        const region = this.navMesh.getRegionForPoint(position, 1);
+
+        return region !== null;
+    }
+
+    rotateTo(target: Vector3, delta: number, tolerance: number = 0.05): boolean {
+        const currentY = this.position.y;
+        const adjustedTarget = new Vector3(target.x, currentY, target.z);
+        const direction = new Vector3().subVectors(adjustedTarget, this.position);
+
+        if (direction.squaredLength() < 0.0001) {
+            return true;
+        }
+
+        direction.normalize();
+
+        // Обновляем направление взгляда
+        this.lookDirection.copy(direction);
+
+        // ВАЖНОЕ ИСПРАВЛЕНИЕ: Вычисляем кватернион поворота для модели
+        this.quaternion.lookAt(
+            this.tempForward,   // локальное направление "вперед" (0, 0, 1)
+            this.lookDirection, // целевое направление в мировом пространстве
+            this.tempUp         // локальное направление "вверх" (0, 1, 0)
+        );
+
+        // Правильное вычисление текущего направления вперед
+        this.tempVector.copy(this.tempForward).applyRotation(this.quaternion);
+        const dot = this.tempVector.dot(direction);
+        const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+
+        return angle <= tolerance;
+    }
+
+    updateAimAndShot(delta: number) {
+        const targetSystem = this.targetSystem;
+        const target = targetSystem.getTarget();
+
+        if (target) {
+            if (targetSystem.isTargetShootable()) {
+                this.resetSearch();
+
+                const targeted = this.rotateTo(target.position, delta, 0.05);
+
+                const timeBecameVisible = targetSystem.getTimeBecameVisible();
+                const elapsedTime = this.currentTime;
+
+                if (targeted && (elapsedTime - timeBecameVisible) >= this.reactionTime) {
+                    console.log(`Mob ${this.eid} shoot`);
+                }
+            } else {
+                if (this.searchAttacker) {
+                    this.targetPosition.copy(this.position).add(this.attackDirection);
+                    this.rotateTo(this.targetPosition, delta);
+                } else {
+                    this.rotateTo(targetSystem.getLastSensedPosition(), delta);
+                }
+            }
+        } else {
+            if (this.searchAttacker) {
+                this.targetPosition.copy(this.position).add(this.attackDirection);
+                this.rotateTo(this.targetPosition, delta);
+            } else {
+                // Улучшенная логика для направления взгляда
+                if (this.moveDirection.squaredLength() > 0.01) {
+                    this.tempVector.copy(this.moveDirection);
+                    this.rotateTo(this.position.clone().add(this.tempVector), delta, 0.1);
+                }
+            }
+        }
+        return this;
     }
 }

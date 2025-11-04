@@ -1,23 +1,56 @@
-import {useRef} from 'react';
-import {Vector3 as TREEVector3, ArrowHelper} from 'three';
-import {useFrame} from '@react-three/fiber';
-import {Vector3} from "yuka";
+// DebugArrows.tsx
+import { ForwardedRef, forwardRef, useImperativeHandle, useRef } from 'react';
+import { Vector3 as TREEVector3, ArrowHelper, Group } from 'three';
+import { useFrame } from '@react-three/fiber';
+import { Vector3 } from "yuka";
 
-interface DebugArrowsProps {
-    position: TREEVector3;
+export type DebugArrowsProps = {
+    lookDirection?: Vector3;
+    moveDirection?: Vector3;
+    enabled?: boolean;
+} & Partial<Group>;
+
+export type DebugArrowsRef = {
     lookDirection: Vector3;
     moveDirection: Vector3;
-    enabled?: boolean;
-}
+} & Group;
 
-const DebugArrows = ({position, lookDirection, moveDirection, enabled = true}: DebugArrowsProps) => {
+const DebugArrows = ({
+                         position = new TREEVector3(),
+                         lookDirection = new Vector3(),
+                         moveDirection = new Vector3(),
+                         enabled = true,
+                         ...rest
+                     }: DebugArrowsProps, forwardedRef: ForwardedRef<DebugArrowsRef>) => {
+
+    const groupRef = useRef<Group>(null);
+    const lookDirectionRef = useRef<Vector3>(lookDirection);
+    const moveDirectionRef = useRef<Vector3>(moveDirection);
+
     const lookArrowRef = useRef<ArrowHelper>(null);
     const moveArrowRef = useRef<ArrowHelper>(null);
-    const ld = lookDirection.clone().normalize()
-    const md = moveDirection.clone().normalize();
+
+    useImperativeHandle(forwardedRef, () => ({
+        ...groupRef.current!,
+        get lookDirection() {
+            return lookDirectionRef.current;
+        },
+        set lookDirection(value: Vector3) {
+            lookDirectionRef.current.copy(value);
+        },
+        get moveDirection() {
+            return moveDirectionRef.current;
+        },
+        set moveDirection(value: Vector3) {
+            moveDirectionRef.current.copy(value);
+        }
+    }), []);
 
     useFrame(() => {
         if (!enabled) return;
+
+        const ld = lookDirectionRef.current.clone().normalize();
+        const md = moveDirectionRef.current.clone().normalize();
 
         // Обновляем стрелку направления взгляда (красная)
         if (lookArrowRef.current) {
@@ -37,17 +70,17 @@ const DebugArrows = ({position, lookDirection, moveDirection, enabled = true}: D
     if (!enabled) return null;
 
     return (
-        <group>
+        <group ref={groupRef} {...rest}>
             <arrowHelper
                 ref={lookArrowRef}
-                args={[new TREEVector3(ld.x, ld.y, ld.z), position, 1, 0xff0000]} // Красный - взгляд
+                args={[new TREEVector3(0, 0, 1), position, 1, 0xff0000]}
             />
             <arrowHelper
                 ref={moveArrowRef}
-                args={[new TREEVector3(md.x, md.y, md.z), position, 0.8, 0x0000ff]} // Синий - движение
+                args={[new TREEVector3(0, 0, 1), position, 0.8, 0x0000ff]}
             />
         </group>
     );
 };
 
-export default DebugArrows;
+export default forwardRef(DebugArrows);

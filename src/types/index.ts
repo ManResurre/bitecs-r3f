@@ -3,6 +3,7 @@ import {RapierRigidBody} from "@react-three/rapier";
 import {CostTable, EntityManager, NavMesh} from "yuka";
 import {PathPlanner} from "../logic/etc/PathPlanner.ts";
 import {Vector3} from "three";
+import {LevelEntity} from "../entities/LevelEntity.ts";
 
 export type WithTime<T extends IWorld> = T & {
     time: {
@@ -35,6 +36,7 @@ export type WithNavMesh<T extends IWorld> = T & {
     pathPlanner?: PathPlanner;
 
     muzzleFlashSystem: Map<string, (position: Vector3, intensity?: number) => void>;
+    level?: LevelEntity
 };
 
 export type CustomWorld = WithNavMesh<WithRigidBody<WithTime<WithBoundaries<IWorld>>>>;
