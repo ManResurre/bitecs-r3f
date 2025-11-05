@@ -44,7 +44,7 @@ const DebugArrows = ({
         set moveDirection(value: Vector3) {
             moveDirectionRef.current.copy(value);
         }
-    }), []);
+    } as DebugArrowsRef), []);
 
     useFrame(() => {
         if (!enabled) return;

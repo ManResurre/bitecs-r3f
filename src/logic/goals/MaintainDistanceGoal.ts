@@ -25,7 +25,7 @@ export class MaintainDistanceGoal extends CompositeGoal<Mob> {
         const owner = this.owner;
         if (!owner) return;
 
-        console.log(`Mob ${owner.eid} MaintainDistanceGoal - ${this.currentTactic}`);
+        // console.log(`Mob ${owner.eid} MaintainDistanceGoal - ${this.currentTactic}`);
 
         this.updateTactic();
         this.executeTactic();
@@ -83,7 +83,7 @@ export class MaintainDistanceGoal extends CompositeGoal<Mob> {
         const owner = this.owner;
         if (!owner || !owner.targetSystem.hasTarget()) return;
 
-        const target = owner.targetSystem.getTarget();
+        const target = owner.targetSystem.getTarget() as Mob;
         if (!target) return;
 
         let targetPosition: Vector3;
@@ -107,21 +107,21 @@ export class MaintainDistanceGoal extends CompositeGoal<Mob> {
         }
     }
 
-    private calculateApproachPosition(target: any): Vector3 {
+    private calculateApproachPosition(target: Mob): Vector3 {
         const owner = this.owner!;
         const directionToTarget = target.position.clone().sub(owner.position).normalize();
         // Подходим на 80% от желаемой дистанции
         return target.position.clone().sub(directionToTarget.multiplyScalar(this.desiredDistance * 0.8));
     }
 
-    private calculateRetreatPosition(target: any): Vector3 {
+    private calculateRetreatPosition(target: Mob): Vector3 {
         const owner = this.owner!;
         const directionFromTarget = owner.position.clone().sub(target.position).normalize();
         // Отходим на 120% от желаемой дистанции
         return owner.position.clone().add(directionFromTarget.multiplyScalar(this.desiredDistance * 0.2));
     }
 
-    private calculateStrafePosition(target: any): Vector3 {
+    private calculateStrafePosition(target: Mob): Vector3 {
         const owner = this.owner!;
         const directionToTarget = target.position.clone().sub(owner.position).normalize();
 

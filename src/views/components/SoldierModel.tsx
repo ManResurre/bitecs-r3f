@@ -1,14 +1,12 @@
-// SoldierModel.tsx
 import {useAnimations, useGLTF} from "@react-three/drei";
-import React, {RefObject, useEffect, useMemo, useRef} from "react";
+import React, {useEffect, useMemo, useRef} from "react";
 import {cloneWithSkinning} from "../../utils/SceneHelper.ts";
 import {Mob} from "../../entities/Mob.ts";
-import {AnimationAction, Group, Vector3 as TreeVector3} from "three";
+import {AnimationAction, Group} from "three";
 import {useWorld} from "../hooks/useWorld.tsx";
 import {useFrame} from "@react-three/fiber";
-import AssaultRifle from "./AssaultRifle.tsx";
+import AssaultRifle, {AssaultRifleRef} from "./AssaultRifle.tsx";
 import DebugArrows, {DebugArrowsRef} from "./DebugArrows.tsx";
-import {Vector3} from "yuka";
 
 export interface SoldierModelProps {
     eid: number;
@@ -21,8 +19,12 @@ export interface SoldierModelProps {
 const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
     const world = useWorld();
     const soldierRef = useRef<Group>(null);
-    const weaponRef = useRef<Group>(null) as RefObject<Group>;
+    const weaponRef = useRef<Group>(null);
     const debugArrowsRef = useRef<DebugArrowsRef>(null);
+
+    const mobEntityRef = useRef<Mob | null>(
+        world.entityManager?.getEntityByName(`mob_${eid}`) as Mob
+    );
 
     const {scene, animations} = useGLTF("./models/soldier.glb");
     const {actions, names, mixer} = useAnimations(animations, soldierRef);
@@ -55,34 +57,28 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
     }, [rightHandBone]);
 
     useEffect(() => {
-        // Сохраняем миксер в компонент Mob
-        const mobEntity: Mob = world.entityManager?.getEntityByName(`mob_${eid}`) as Mob;
-        if (mobEntity) {
-            mobEntity.weaponRef = weaponRef;
-            mobEntity.setAnimations(mixer, actions as Record<string, AnimationAction>, names);
-        }
-    }, [mixer, actions, eid, world.entityManager, names]);
+        if (!mobEntityRef.current)
+            return;
 
-    // Временные векторы для вычислений
-    const lookDirection = useMemo(() => new Vector3(), []);
-    const moveDirection = useMemo(() => new Vector3(), []);
+        mobEntityRef.current.weaponRef = weaponRef;
+        mobEntityRef.current.setAnimations(mixer, actions as Record<string, AnimationAction>, names);
+
+    }, [mixer, actions, names]);
 
     // Обновляем направления в useFrame
     useFrame(() => {
-        const mobEntity: Mob = world.entityManager?.getEntityByName(`mob_${eid}`) as Mob;
-        if (mobEntity && soldierRef.current) {
+        if (mobEntityRef.current && soldierRef.current) {
             // Позиция всегда синхронизирована
-            soldierRef.current.position.copy(mobEntity.position.clone());
+            soldierRef.current.position.copy(mobEntityRef.current.position.clone());
 
             // Вращение модели определяет направление взгляда (стрельбы)
-            // soldierRef.current.quaternion.copy(mobEntity.rotation.clone());
-            soldierRef.current.quaternion.copy(mobEntity.quaternion.clone());
+            soldierRef.current.quaternion.copy(mobEntityRef.current.quaternion.clone());
 
             if (debugArrowsRef.current) {
-                debugArrowsRef.current.position.copy(mobEntity.position);
+                debugArrowsRef.current.position.copy(mobEntityRef.current.position);
 
-                debugArrowsRef.current.lookDirection.copy(mobEntity.lookDirection);
-                debugArrowsRef.current.moveDirection.copy(mobEntity.moveDirection);
+                debugArrowsRef.current.lookDirection.copy(mobEntityRef.current.lookDirection);
+                debugArrowsRef.current.moveDirection.copy(mobEntityRef.current.moveDirection);
             }
         }
     });
@@ -95,7 +91,7 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
                 {...props}
             />
 
-            <AssaultRifle ref={weaponRef}/>
+            <AssaultRifle ref={weaponRef} eid={mobEntityRef.current?.arId}/>
             <DebugArrows ref={debugArrowsRef}/>
         </>
     );

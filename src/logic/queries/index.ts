@@ -1,12 +1,21 @@
 import {defineQuery, enterQuery, exitQuery} from "bitecs";
 import {
-    ColorComponent, HealthComponent, MobComponent, ParticleComponent, ParticleEmitterComponent,
+    ColorComponent,
+    HealthComponent,
+    MobComponent,
+    ParticleComponent,
+    ParticleEmitterComponent,
     PositionComponent,
     RotationComponent,
     SpawnComponent,
     SpeedComponent,
     TileComponent,
-    VelocityComponent, MobYukaEntityComponent, HealthPackSpawnComponent, HealthPackComponent,
+    VelocityComponent,
+    MobYukaEntityComponent,
+    HealthPackSpawnComponent,
+    HealthPackComponent,
+    AssaultRifleComponent,
+    BulletComponent,
 } from "../components";
 import {FlowComponent} from "../components/FlowComponent";
 import {GraphComponent} from "../components/GraphComponent";
@@ -54,6 +63,14 @@ export const carsQuery = defineQuery([
 export const mobsQuery = defineQuery([
     MobComponent,
     MobYukaEntityComponent
+]);
+
+export const assaultRifleQuery = defineQuery([
+    AssaultRifleComponent
+]);
+
+export const bulletQuery = defineQuery([
+    BulletComponent
 ]);
 
 export const yukaQuery = defineQuery([

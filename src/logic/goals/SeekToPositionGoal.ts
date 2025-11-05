@@ -18,7 +18,7 @@ export class SeekToPositionGoal extends Goal<Mob> {
 
         const owner = this.owner;
 
-        console.log(`Mob ${owner.eid} SeekToPositionGoal`);
+        // console.log(`Mob ${owner.eid} SeekToPositionGoal`);
 
         const seekBehavior: SeekBehavior = owner.steering.behaviors[2] as SeekBehavior;
         seekBehavior.target.copy(this.target);

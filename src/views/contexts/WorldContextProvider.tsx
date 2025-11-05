@@ -9,6 +9,7 @@ import {spawnMobsSystem} from "../../logic/systems/spawnMobsSystem.ts";
 import {loadNavMeshSystem} from "../../logic/systems/loadNavMeshSystem.ts";
 import {yukaIntegrationSystem} from "../../logic/systems/yukaIntegrationSystem.ts";
 import {spawnHealthSystem} from "../../logic/systems/spawnHealthSystem.ts";
+import {spawnBulletSystem} from "../../logic/systems/spawnBulletSystem.ts";
 
 export function WorldContextProvider({
                                          children,
@@ -23,7 +24,8 @@ export function WorldContextProvider({
         timeSystem,
         spawnMobsSystem,
         spawnHealthSystem,
-        yukaIntegrationSystem
+        yukaIntegrationSystem,
+        spawnBulletSystem
         // pathDecisionSystem,    // Принятие решений о путях
         // pathMovementSystem,    // Движение по пути
         // physicsMovementSystem,

@@ -59,6 +59,7 @@ const MuzzleFlash = ({
 
     return <sprite
         ref={spriteRef}
+        name="MuzzleFlash"
         position={position}
         scale={[size, size, 1]}
         material={muzzleMaterial}

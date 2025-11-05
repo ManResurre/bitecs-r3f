@@ -367,7 +367,7 @@ export class WeaponSystem {
                 // in this case, search for the attacker
                 if (owner.searchAttacker) {
                     targetPosition.copy(owner.position).add(owner.attackDirection);
-                    owner.rotateTo(targetPosition, delta);
+                    owner.rotateTo(targetPosition);
                 } else {
                     // otherwise rotate to the latest recorded position
                     owner.rotateTo(targetSystem.getLastSensedPosition(), delta);
@@ -377,13 +377,13 @@ export class WeaponSystem {
             // if the enemy has no target, look for an attacker if necessary
             if (owner.searchAttacker) {
                 targetPosition.copy(owner.position).add(owner.attackDirection);
-                owner.rotateTo(targetPosition, delta);
+                owner.rotateTo(targetPosition);
             } else {
                 // if the enemy has no target and is not being attacked, just look along
                 // the movement direction
                 displacement.copy(owner.velocity).normalize();
                 targetPosition.copy(owner.position).add(displacement);
-                owner.rotateTo(targetPosition, delta);
+                owner.rotateTo(targetPosition);
             }
         }
         return this;

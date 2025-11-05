@@ -15,7 +15,7 @@ export class AttackGoal extends CompositeGoal<Mob> {
         if (!owner)
             return;
 
-        console.log(`Mob ${owner.eid} AttackGoal`);
+        // console.log(`Mob ${owner.eid} AttackGoal`);
 
         if (owner.targetSystem.isTargetShootable()) {
             // Используем тактику поддержания дистанции вместо уклонения

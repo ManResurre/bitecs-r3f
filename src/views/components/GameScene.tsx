@@ -4,7 +4,8 @@ import {NavMeshDebug} from "./NavigationDebug.tsx";
 import HealthPackList from "./HealthPackList.tsx";
 import Mobs from "./Mobs.tsx";
 import MuzzleLight from "./MuzzleLight.tsx";
-import BulletLine from "./BulletLine.tsx";
+import BulletLine from "./Bullets.tsx";
+import Bullets from "./Bullets.tsx";
 
 const GameScene = () => {
 
@@ -14,7 +15,9 @@ const GameScene = () => {
         <HealthPackList/>
         <Mobs/>
         <MuzzleLight/>
-
+        <Bullets
+            color={0x00ff00}
+        />
     </>;
 }
 

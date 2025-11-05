@@ -13,18 +13,17 @@ import CONFIG from "../core/Config.ts";
 import {CustomWorld} from "../types";
 import {ExploreEvaluator} from "../logic/evaluators/ExploreEvaluator.ts";
 import {
-    HEALTH_PACK,
     STATUS_ALIVE, STATUS_DEAD,
     STATUS_DYING,
-    WEAPON_TYPES_ASSAULT_RIFLE,
-    WEAPON_TYPES_SHOTGUN
 } from "../core/Constants.ts";
-import {AnimationAction, AnimationMixer, Group} from "three";
+import {AnimationAction, AnimationMixer, Group, Sprite, Vector3 as TreeVector3} from "three";
 import {mobsQuery} from "../logic/queries";
 import {TargetSystem} from "../core/TargetSystem.ts";
 import {GetHealthEvaluator} from "../logic/evaluators/GetHealthEvaluator.ts";
 import {RefObject} from "react";
 import {AttackEvaluator} from "../logic/evaluators/AttackEvaluator.ts";
+import {AssaultRifleComponent, BulletComponent} from "../logic/components";
+import {addComponent, addEntity} from "bitecs";
 
 // Константы для системы анимаций
 const DIRECTIONS = [
@@ -78,15 +77,6 @@ export class Mob extends Vehicle {
     private positiveWeightings: number[] = [];
     private currentAnimationState = 'idle';
 
-    // item related properties
-    ignoreHealth = false;
-    ignoreShotgun = false;
-    ignoreAssaultRifle = false;
-    endTimeIgnoreHealth = Infinity;
-    endTimeIgnoreShotgun = Infinity;
-    endTimeIgnoreAssaultRifle = Infinity;
-    ignoreItemsTimeout = CONFIG.BOT.IGNORE_ITEMS_TIMEOUT;
-
     // vision
     head = new GameEntity();
     vision = new Vision(this.head);
@@ -98,21 +88,16 @@ export class Mob extends Vehicle {
 
     // death animation
     endTimeDying = Infinity;
-    dyingTime = CONFIG.BOT.DYING_TIME;
 
     // searching for attackers
     searchAttacker = false;
     attackDirection = new Vector3();
     endTimeSearch = Infinity;
-    searchTime = CONFIG.BOT.SEARCH_FOR_ATTACKER_TIME;
 
     // target system
     targetSystem = new TargetSystem(this);
     targetSystemRegulator = new Regulator(CONFIG.BOT.TARGET_SYSTEM.UPDATE_FREQUENCY);
-    displacement = new Vector3();
     targetPosition = new Vector3();
-
-    ignoreWeapons = false;
 
     weaponContainer = new GameEntity();
 
@@ -126,6 +111,11 @@ export class Mob extends Vehicle {
 
     reactionTime = CONFIG.BOT.WEAPON.REACTION_TIME;
 
+    arId: number;
+
+    shotTimeInterval = 0.5;
+    lastShootTime = 0;
+
     constructor(eid: number, world: CustomWorld) {
         super();
         this.eid = eid;
@@ -133,8 +123,9 @@ export class Mob extends Vehicle {
         this.world = world;
         this.navMesh = world.navMesh!;
 
-        // Инициализируем направление взгляда
-        // this.lookDirection.copy(this.forward);
+        this.arId = addEntity(world);
+        addComponent(this.world, AssaultRifleComponent, this.arId);
+        AssaultRifleComponent.shoot[this.arId] = 0;
 
         this.initializePosition();
         this.brain.addEvaluator(new AttackEvaluator());
@@ -507,26 +498,6 @@ export class Mob extends Vehicle {
         }
     }
 
-    isItemIgnored(type: number) {
-        let ignoreItem = false;
-        switch (type) {
-            case HEALTH_PACK:
-                ignoreItem = this.ignoreHealth;
-                break;
-            case WEAPON_TYPES_SHOTGUN:
-                ignoreItem = this.ignoreShotgun;
-                break;
-            case WEAPON_TYPES_ASSAULT_RIFLE:
-                ignoreItem = this.ignoreAssaultRifle;
-                break;
-            default:
-                console.error('Mob: Invalid item type:', type);
-                break;
-        }
-
-        return ignoreItem;
-    }
-
     resetSearch() {
         this.searchAttacker = false;
         this.attackDirection.set(0, 0, 0);
@@ -534,40 +505,7 @@ export class Mob extends Vehicle {
         return this;
     }
 
-    reset() {
-        this.health = this.maxHealth;
-        this.status = STATUS_ALIVE;
-
-        this.resetSearch();
-
-        this.ignoreHealth = false;
-        this.ignoreWeapons = false;
-
-        this.brain.clearSubgoals();
-
-        this.memoryRecords.length = 0;
-        this.memorySystem.clear();
-
-        this.targetSystem.reset();
-
-        if (this.actions) {
-            const run = this.actions['soldier_forward'].play();
-            run.enabled = true;
-        }
-
-        return this;
-    }
-
-    canMoveInDirection(direction: Vector3, position: Vector3) {
-        position.copy(direction).applyRotation(this.rotation).normalize();
-        position.multiplyScalar(CONFIG.BOT.MOVEMENT.DODGE_SIZE).add(this.position);
-
-        const region = this.navMesh.getRegionForPoint(position, 1);
-
-        return region !== null;
-    }
-
-    rotateTo(target: Vector3, delta: number, tolerance: number = 0.05): boolean {
+    rotateTo(target: Vector3, tolerance: number = 0.05): boolean {
         const currentY = this.position.y;
         const adjustedTarget = new Vector3(target.x, currentY, target.z);
         const direction = new Vector3().subVectors(adjustedTarget, this.position);
@@ -581,7 +519,6 @@ export class Mob extends Vehicle {
         // Обновляем направление взгляда
         this.lookDirection.copy(direction);
 
-        // ВАЖНОЕ ИСПРАВЛЕНИЕ: Вычисляем кватернион поворота для модели
         this.quaternion.lookAt(
             this.tempForward,   // локальное направление "вперед" (0, 0, 1)
             this.lookDirection, // целевое направление в мировом пространстве
@@ -597,6 +534,8 @@ export class Mob extends Vehicle {
     }
 
     updateAimAndShot(delta: number) {
+        AssaultRifleComponent.shoot[this.arId] = 0;
+
         const targetSystem = this.targetSystem;
         const target = targetSystem.getTarget();
 
@@ -604,31 +543,62 @@ export class Mob extends Vehicle {
             if (targetSystem.isTargetShootable()) {
                 this.resetSearch();
 
-                const targeted = this.rotateTo(target.position, delta, 0.05);
+                const targeted = this.rotateTo(target.position, 0.05);
 
                 const timeBecameVisible = targetSystem.getTimeBecameVisible();
                 const elapsedTime = this.currentTime;
 
                 if (targeted && (elapsedTime - timeBecameVisible) >= this.reactionTime) {
-                    console.log(`Mob ${this.eid} shoot`);
+                    // console.log(`Mob ${this.eid} shoot`);
+
+                    if (this.lastShootTime + this.shotTimeInterval < this.currentTime) {
+
+
+                        const mf = this.weaponRef?.current.getObjectByName("MuzzleFlash") as Sprite;
+
+                        if (mf) {
+                            AssaultRifleComponent.shoot[this.arId] = 1;
+
+                            const bId = addEntity(this.world);
+                            addComponent(this.world, BulletComponent, bId);
+
+                            BulletComponent.arId[bId] = this.arId;
+
+                            const pos = mf.getWorldPosition(new TreeVector3())
+
+                            BulletComponent.from.x[bId] = pos.x;
+                            BulletComponent.from.y[bId] = pos.y;
+                            BulletComponent.from.z[bId] = pos.z;
+
+                            BulletComponent.to.x[bId] = target.position.x;
+                            BulletComponent.to.y[bId] = target.position.y;
+                            BulletComponent.to.z[bId] = target.position.z;
+
+                            BulletComponent.time[bId] = this.world.time.elapsed;
+
+                            // console.log(BulletComponent.time[bId]);
+                        }
+
+                        this.lastShootTime = this.currentTime;
+                    }
                 }
             } else {
                 if (this.searchAttacker) {
                     this.targetPosition.copy(this.position).add(this.attackDirection);
-                    this.rotateTo(this.targetPosition, delta);
+                    this.rotateTo(this.targetPosition);
                 } else {
-                    this.rotateTo(targetSystem.getLastSensedPosition(), delta);
+                    this.rotateTo(targetSystem.getLastSensedPosition());
                 }
             }
         } else {
             if (this.searchAttacker) {
                 this.targetPosition.copy(this.position).add(this.attackDirection);
-                this.rotateTo(this.targetPosition, delta);
+                this.rotateTo(this.targetPosition);
             } else {
                 // Улучшенная логика для направления взгляда
                 if (this.moveDirection.squaredLength() > 0.01) {
                     this.tempVector.copy(this.moveDirection);
-                    this.rotateTo(this.position.clone().add(this.tempVector), delta, 0.1);
+                    this.rotateTo(this.position.clone().add(this.tempVector), 0.1);
                 }
             }
         }

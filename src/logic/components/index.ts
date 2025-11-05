@@ -79,5 +79,15 @@ export const HealthPackComponent = defineComponent({
     entityId: [Types.ui8, 32], // ID соответствующей сущности в Yuka
 });
 
-export const HealthPackSpawnComponent = defineComponent({
+export const HealthPackSpawnComponent = defineComponent({});
+
+export const AssaultRifleComponent = defineComponent({
+    shoot: Types.i8,
+});
+
+export const BulletComponent = defineComponent({
+    arId: Types.i32,
+    from: Vector3,
+    to: Vector3,
+    time: Types.i32
 });
