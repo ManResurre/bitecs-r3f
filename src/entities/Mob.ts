@@ -22,8 +22,9 @@ import {TargetSystem} from "../core/TargetSystem.ts";
 import {GetHealthEvaluator} from "../logic/evaluators/GetHealthEvaluator.ts";
 import {RefObject} from "react";
 import {AttackEvaluator} from "../logic/evaluators/AttackEvaluator.ts";
-import {AssaultRifleComponent, BulletComponent} from "../logic/components";
+import {AssaultRifleComponent} from "../logic/components";
 import {addComponent, addEntity} from "bitecs";
+import {addBullet} from "../logic/systems/spawnBulletSystem.ts";
 
 // Константы для системы анимаций
 const DIRECTIONS = [
@@ -58,7 +59,7 @@ export class Mob extends Vehicle {
     path: Vector3[] | null = null;
 
     brain = new Think(this);
-    goalArbitrationRegulator = new Regulator(5);
+    goalArbitrationRegulator = new Regulator(1);
     maxSpeed = CONFIG.BOT.MOVEMENT.MAX_SPEED;
 
     // animation
@@ -78,8 +79,8 @@ export class Mob extends Vehicle {
     private currentAnimationState = 'idle';
 
     // vision
-    head = new GameEntity();
-    vision = new Vision(this.head);
+    head: GameEntity;
+    vision: Vision;
     visionRegulator = new Regulator(CONFIG.BOT.VISION.UPDATE_FREQUENCY);
 
     // memory
@@ -152,17 +153,32 @@ export class Mob extends Vehicle {
         seekBehavior.active = false;
         this.steering.add(seekBehavior);
 
-        //head
-        this.head.position.y = CONFIG.BOT.HEAD_HEIGHT;
-        this.add(this.head);
-
-        // the weapons are attached to the following container entity
-        this.head.add(this.weaponContainer);
-
         this.memorySystem.memorySpan = CONFIG.BOT.MEMORY.SPAN;
 
-        this.vision.fieldOfView = Math.PI; // 180 градусов
-        this.vision.range = 50;
+        this.head = new GameEntity();
+        this.head.position.y = CONFIG.BOT.HEAD_HEIGHT; // Важно: задаем смещение
+        this.add(this.head);
+
+        this.vision = new Vision(this.head);
+        this.vision.fieldOfView = Math.PI / 2;
+        this.vision.range = 20;
+    }
+
+    start(): this {
+        super.start();
+        if (this.world.level) {
+            this.vision.addObstacle(this.world.level);
+        }
+        return this;
+    }
+
+
+    public actualHeadPosition = new Vector3();
+
+    // Метод для обновления реального направления головы из Three.js
+    updateActualHeadDirection(forward: TreeVector3, position: TreeVector3) {
+        // Теперь просто обновляем head entity
+        this.head.position.set(position.x, position.y, position.z);
     }
 
     private initializePosition(): void {
@@ -294,10 +310,6 @@ export class Mob extends Vehicle {
     }
 
     updateVision() {
-        if (!this.vision.obstacles.length && this.world.level) {
-            this.vision.addObstacle(this.world.level);
-        }
-
         const memorySystem = this.memorySystem;
         const vision = this.vision;
 
@@ -314,25 +326,57 @@ export class Mob extends Vehicle {
             }
 
             const record = memorySystem.getRecord(competitor);
+            if (!record) continue;
 
-            if (!record) {
-                console.warn(`Could not get record for competitor ${mobId}`);
-                continue;
-            }
+            // ИСПОЛЬЗУЕМ WORLD ПОЗИЦИЮ как в оригинале
+            const worldPosition = new Vector3();
+            competitor.head.getWorldPosition(worldPosition);
 
-            competitor.head.getWorldPosition(this.worldPosition);
+            // Проверяем видимость
+            const isVisible = vision.visible(worldPosition) && competitor.active;
 
-            if (vision.visible(this.worldPosition) && competitor.active) {
+            if (isVisible) {
+                record.visible = true;
                 record.timeLastSensed = this.currentTime;
                 record.lastSensedPosition.copy(competitor.position);
-                if (record.visible === false) record.timeBecameVisible = this.currentTime;
-                record.visible = true;
             } else {
                 record.visible = false;
             }
         }
 
         return this;
+    }
+
+    // НАША СОБСТВЕННАЯ ПРОВЕРКА ВИДИМОСТИ
+    simpleVisibilityCheck(targetPosition: Vector3): boolean {
+        const origin = this.actualHeadPosition;
+        const target = targetPosition;
+
+        // 1. Проверка расстояния
+        const distance = origin.distanceTo(target);
+        if (distance > this.vision.range) {
+            return false;
+        }
+
+        // 2. Проверка поля зрения
+        const directionToTarget = new Vector3()
+            .subVectors(target, origin)
+            .normalize();
+
+        const dot = directionToTarget.dot(this.head.forward);
+        const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
+
+        if (angle > (this.vision.fieldOfView * 0.5)) {
+            return false;
+        }
+
+        // 3. Проверка препятствий (опционально, можно временно отключить)
+        if (this.vision.obstacles.length > 0) {
+            // Здесь можно добавить проверку препятствий когда будет нужно
+            // Пока пропускаем эту проверку
+        }
+
+        return true;
     }
 
     atPosition(position: Vector3) {
@@ -549,34 +593,15 @@ export class Mob extends Vehicle {
                 const elapsedTime = this.currentTime;
 
                 if (targeted && (elapsedTime - timeBecameVisible) >= this.reactionTime) {
-                    // console.log(`Mob ${this.eid} shoot`);
+                    // Начало стрельбы
 
                     if (this.lastShootTime + this.shotTimeInterval < this.currentTime) {
-
-
                         const mf = this.weaponRef?.current.getObjectByName("MuzzleFlash") as Sprite;
 
                         if (mf) {
                             AssaultRifleComponent.shoot[this.arId] = 1;
-
-                            const bId = addEntity(this.world);
-                            addComponent(this.world, BulletComponent, bId);
-
-                            BulletComponent.arId[bId] = this.arId;
-
                             const pos = mf.getWorldPosition(new TreeVector3())
-
-                            BulletComponent.from.x[bId] = pos.x;
-                            BulletComponent.from.y[bId] = pos.y;
-                            BulletComponent.from.z[bId] = pos.z;
-
-                            BulletComponent.to.x[bId] = target.position.x;
-                            BulletComponent.to.y[bId] = target.position.y;
-                            BulletComponent.to.z[bId] = target.position.z;
-
-                            BulletComponent.time[bId] = this.world.time.elapsed;
-
-                            // console.log(BulletComponent.time[bId]);
+                            addBullet(this.arId, pos, target.position, this.world)
                         }
 
                         this.lastShootTime = this.currentTime;

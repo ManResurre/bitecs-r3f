@@ -3,29 +3,29 @@ import {CustomWorld} from "../../types";
 import {bulletQuery} from "../queries";
 import {BulletComponent} from "../components";
 import {Projectile} from "../../entities/Projectile.ts";
+import {Vector3} from "yuka";
+import {Vector3 as TreeVector3} from "three";
 
 const bullets = new Map();
 
+export const addBullet = (arId: number, from: TreeVector3, to: Vector3, world: CustomWorld) => {
+    const bId = addEntity(world);
+    addComponent(world, BulletComponent, bId);
+
+    BulletComponent.arId[bId] = arId;
+
+    BulletComponent.from.x[bId] = from.x;
+    BulletComponent.from.y[bId] = from.y;
+    BulletComponent.from.z[bId] = from.z;
+
+    BulletComponent.to.x[bId] = to.x;
+    BulletComponent.to.y[bId] = to.y;
+    BulletComponent.to.z[bId] = to.z;
+
+    BulletComponent.time[bId] = world.time.elapsed;
+}
+
 export const spawnBulletSystem = defineSystem((world: CustomWorld) => {
-    // if (!bullets.has('test')) {
-    //     const bId = addEntity(world);
-    //     addComponent(world, BulletComponent, bId);
-    //     BulletComponent.from.x[bId] = 0;
-    //     BulletComponent.from.y[bId] = 0;
-    //     BulletComponent.from.z[bId] = 0;
-    //
-    //     BulletComponent.to.x[bId] = 0;
-    //     BulletComponent.to.y[bId] = 1;
-    //     BulletComponent.to.z[bId] = 0;
-    //
-    //     BulletComponent.time[bId] = 0;
-    //     const bullet = new Projectile(bId);
-    //     bullets.set('test', bullet);
-    //     world.entityManager.add(bullet);
-    // }
-
-    // console.log(world.entityManager);
-
     const bulletIds = bulletQuery(world);
     for (const bId of bulletIds) {
         if (!bullets.has(bId)) {

@@ -41,10 +41,10 @@ const CONFIG = {
             ONPATH_WEIGHT: 1 // unitless
         },
         TARGET_SYSTEM: {
-            UPDATE_FREQUENCY: 5 // number per seconds
+            UPDATE_FREQUENCY: 1 // number per seconds
         },
         VISION: {
-            UPDATE_FREQUENCY: 5 // number per seconds
+            UPDATE_FREQUENCY: 2 // каждую секунду если увеличить будет чаще
         },
         WEAPON: {
             UPDATE_FREQUENCY: 4, // number per seconds
