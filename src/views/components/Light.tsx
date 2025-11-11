@@ -10,16 +10,17 @@ const Light = () => {
     const targetRef = useRef<Object3D>(null);
 
     useHelper(dr as RefObject<DirectionalLight>, DirectionalLightHelper, 1, "red");
-    const {intensity, x, y, z, targetX, targetY, targetZ, color} = useControls('Light', {
-        intensity: {value: 5, min: 0, max: 15},
-        x: {value: 0, min: -30, max: 30},
-        y: {value: 30, min: -30, max: 30},
-        z: {value: 30, min: -30, max: 30},
+    const {intensity, x, y, z, targetX, targetY, targetZ, color, showHelper} = useControls('Light', {
+        intensity: {value: 2, min: 0, max: 15},
+        x: {value: -30, min: -30, max: 30},
+        y: {value: 40, min: -30, max: 40},
+        z: {value: -30, min: -30, max: 30},
         targetX: {value: 0, min: -10, max: 10},
         targetY: {value: 0, min: -10, max: 10},
         targetZ: {value: 0, min: -10, max: 10},
-        color: { value: "#ffffff" } // Холодный синий цвет лунного света
-    })
+        color: {value: "#ffffff"}, // Холодный синий цвет лунного света
+        showHelper: false
+    }, {collapsed: true})
 
     useEffect(() => {
         if (!dr.current || !targetRef.current) return;
@@ -34,7 +35,8 @@ const Light = () => {
         scene.add(targetRef.current);
 
         const helper = new CameraHelper(dr.current.shadow.camera);
-        scene.add(helper);
+        if (showHelper)
+            scene.add(helper);
 
         return () => {
             scene.remove(helper);

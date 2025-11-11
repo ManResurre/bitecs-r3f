@@ -1,6 +1,6 @@
 import {useEffect, useRef} from 'react';
 import {Vector3} from "yuka";
-import {useWorld} from "../hooks/useWorld.tsx";
+import {useWorld} from "../../hooks/useWorld.tsx";
 import {BufferGeometry, Color, DoubleSide, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial} from "three";
 
 export const NavMeshDebug = () => {

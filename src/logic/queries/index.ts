@@ -1,4 +1,4 @@
-import {defineQuery, enterQuery, exitQuery} from "bitecs";
+import {defineQuery} from "bitecs";
 import {
     ColorComponent,
     HealthComponent,
@@ -15,10 +15,9 @@ import {
     HealthPackSpawnComponent,
     HealthPackComponent,
     AssaultRifleComponent,
-    BulletComponent,
+    BulletComponent, MobSpawnComponent,
 } from "../components";
 import {FlowComponent} from "../components/FlowComponent";
-import {GraphComponent} from "../components/GraphComponent";
 
 export const movementQuery = defineQuery([
     PositionComponent,
@@ -33,31 +32,16 @@ export const tilesQuery = defineQuery([
     TileComponent,
 ]);
 
-export const graphQuery = defineQuery([PositionComponent, GraphComponent]);
-
 export const flowQuery = defineQuery([
     ColorComponent,
     PositionComponent,
     FlowComponent,
 ]);
 
-export const spawnQuery = defineQuery([
-    PositionComponent,
-    ColorComponent,
-    SpawnComponent,
-]);
-
 export const spawnMobsQuery = defineQuery([
     PositionComponent,
     SpawnComponent,
-]);
-
-export const enterSpawnQuery = enterQuery(spawnQuery);
-
-export const carsQuery = defineQuery([
-    PositionComponent,
-    RotationComponent,
-    ColorComponent,
+    MobSpawnComponent
 ]);
 
 export const mobsQuery = defineQuery([
@@ -86,10 +70,6 @@ export const healthPackSpawnQuery = defineQuery([
 export const healthPackQuery = defineQuery([
     HealthPackComponent,
 ])
-
-export const enterCarsQuery = enterQuery(carsQuery);
-
-export const exitCarsQuery = exitQuery(carsQuery);
 
 export const healthQuery = defineQuery([
     HealthComponent,

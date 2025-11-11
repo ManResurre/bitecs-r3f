@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import {BufferGeometry, Float32BufferAttribute} from 'three';
-import {useThree} from '@react-three/fiber';
 
 interface VisionHelperProps {
     fieldOfView: number;
@@ -11,15 +10,13 @@ interface VisionHelperProps {
     rotation?: [number, number, number];
 }
 
-export const VisionHelper: React.FC<VisionHelperProps> = ({
-                                                              fieldOfView,
-                                                              range,
-                                                              division = 8,
-                                                              color = 'white',
-                                                              position = [0, 0, 0],
-                                                              rotation = [0, 0, 0]
-                                                          }) => {
-    const {scene} = useThree();
+export const VisionHelper = ({
+                                 fieldOfView,
+                                 range,
+                                 division = 8,
+                                 color = 'white',
+                                 ...rest
+                             }: VisionHelperProps) => {
 
     const geometry = useMemo(() => {
         const geom = new BufferGeometry();
@@ -47,13 +44,12 @@ export const VisionHelper: React.FC<VisionHelperProps> = ({
     return (
         <mesh
             geometry={geometry}
-            position={position}
-            rotation={rotation}
+            {...rest}
         >
             <meshBasicMaterial
                 color={color}
-                wireframe={true}
-                transparent={true}
+                wireframe
+                transparent
                 opacity={0.6}
             />
         </mesh>

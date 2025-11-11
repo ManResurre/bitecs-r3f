@@ -15,6 +15,8 @@ export class AttackGoal extends CompositeGoal<Mob> {
         if (!owner)
             return;
 
+        // owner.velocity.multiplyScalar(0);
+
         // console.log(`Mob ${owner.eid} AttackGoal`);
 
         if (owner.targetSystem.isTargetShootable()) {

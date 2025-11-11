@@ -16,7 +16,7 @@ import {
     STATUS_ALIVE, STATUS_DEAD,
     STATUS_DYING,
 } from "../core/Constants.ts";
-import {AnimationAction, AnimationMixer, Group, Sprite, Vector3 as TreeVector3} from "three";
+import {AnimationAction, AnimationMixer, Group, SkinnedMesh, Sprite, Vector3 as TreeVector3} from "three";
 import {mobsQuery} from "../logic/queries";
 import {TargetSystem} from "../core/TargetSystem.ts";
 import {GetHealthEvaluator} from "../logic/evaluators/GetHealthEvaluator.ts";
@@ -25,6 +25,7 @@ import {AttackEvaluator} from "../logic/evaluators/AttackEvaluator.ts";
 import {AssaultRifleComponent} from "../logic/components";
 import {addComponent, addEntity} from "bitecs";
 import {addBullet} from "../logic/systems/spawnBulletSystem.ts";
+import {CharacterBounds} from "../logic/etc/CharacterBounds.ts";
 
 // Константы для системы анимаций
 const DIRECTIONS = [
@@ -44,8 +45,6 @@ export class Mob extends Vehicle {
     private tempForward = new Vector3(0, 0, 1);
     private tempUp = new Vector3(0, 1, 0);
     private tempVector = new Vector3();
-
-    worldPosition = new Vector3();
 
     health = CONFIG.BOT.MAX_HEALTH;
     maxHealth = CONFIG.BOT.MAX_HEALTH;
@@ -103,6 +102,7 @@ export class Mob extends Vehicle {
     weaponContainer = new GameEntity();
 
     weaponRef?: RefObject<Group>;
+    renderComponent?: RefObject<Group>;
 
     attackRange = {
         desired: 15,
@@ -117,6 +117,8 @@ export class Mob extends Vehicle {
     shotTimeInterval = 0.5;
     lastShootTime = 0;
 
+    bounds = new CharacterBounds(this);
+
     constructor(eid: number, world: CustomWorld) {
         super();
         this.eid = eid;
@@ -128,7 +130,7 @@ export class Mob extends Vehicle {
         addComponent(this.world, AssaultRifleComponent, this.arId);
         AssaultRifleComponent.shoot[this.arId] = 0;
 
-        this.initializePosition();
+        // this.initializePosition();
         this.brain.addEvaluator(new AttackEvaluator());
         this.brain.addEvaluator(new ExploreEvaluator());
         this.brain.addEvaluator(new GetHealthEvaluator());
@@ -156,11 +158,9 @@ export class Mob extends Vehicle {
         this.memorySystem.memorySpan = CONFIG.BOT.MEMORY.SPAN;
 
         this.head = new GameEntity();
-        this.head.position.y = CONFIG.BOT.HEAD_HEIGHT; // Важно: задаем смещение
-        this.add(this.head);
 
         this.vision = new Vision(this.head);
-        this.vision.fieldOfView = Math.PI / 2;
+        this.vision.fieldOfView = 2 * Math.PI / 3; //120 градусов
         this.vision.range = 20;
     }
 
@@ -172,23 +172,26 @@ export class Mob extends Vehicle {
         return this;
     }
 
+    setRenderComponentRef(renderComponentRef: RefObject<Group>) {
+        if (!renderComponentRef.current || this.renderComponent)
+            return;
+        this.renderComponent = renderComponentRef;
 
-    public actualHeadPosition = new Vector3();
-
-    // Метод для обновления реального направления головы из Three.js
-    updateActualHeadDirection(forward: TreeVector3, position: TreeVector3) {
-        // Теперь просто обновляем head entity
-        this.head.position.set(position.x, position.y, position.z);
+        this.bounds.init(renderComponentRef.current)
     }
 
-    private initializePosition(): void {
+    setWeaponRef(weaponRef: RefObject<Group>) {
+        this.weaponRef = weaponRef
+    }
+
+    public initializePosition(pos: Vector3): void {
         if (!this.navMesh) {
             console.warn(`Mob ${this.eid}: NavMesh not available for position initialization`);
             return;
         }
 
         // const region = this.navMesh.getRandomRegion();
-        const region = this.navMesh.getRegionForPoint(new Vector3(0, 0, 0), 4)
+        const region = this.navMesh.getRegionForPoint(pos, 4)
 
         if (region) {
             this.position.copy(region.centroid);
@@ -196,6 +199,7 @@ export class Mob extends Vehicle {
             this.previousPosition.copy(this.position);
             this.initialized = true;
         } else {
+            this.position.copy(pos);
             console.error(`Mob ${this.eid}: Could not find random region for initialization`);
         }
     }
@@ -271,6 +275,8 @@ export class Mob extends Vehicle {
         this.updateAnimations();
 
         if (this.status === STATUS_ALIVE) {
+            this.bounds.update();
+
             // update perception
             if (this.visionRegulator.ready()) {
                 this.updateVision();
@@ -300,7 +306,33 @@ export class Mob extends Vehicle {
             }
         }
 
+        this.head.position.copy(this.position).add(new Vector3(0, 1.5, 0));
+        this.head.rotation.copy(this.quaternion);
+
         return this;
+    }
+
+    getStatus(): string[] {
+        const getAllGoals = (rootGoal: any): any[] => {
+            const goals: string[] = [];
+            const stack: any[] = [rootGoal];
+
+            while (stack.length > 0) {
+                const currentGoal = stack.pop();
+                goals.push(currentGoal.constructor.name);
+
+                // Добавляем подцели в стек (в обратном порядке для сохранения порядка)
+                if (currentGoal.subgoals && currentGoal.subgoals.length) {
+                    for (let i = currentGoal.subgoals.length - 1; i >= 0; i--) {
+                        stack.push(currentGoal.subgoals[i]);
+                    }
+                }
+            }
+
+            return goals;
+        }
+
+        return getAllGoals(this.brain);
     }
 
     removeEntityFromMemory(entity: GameEntity) {
@@ -310,6 +342,10 @@ export class Mob extends Vehicle {
     }
 
     updateVision() {
+        if (this.world.level && !this.vision.obstacles.length) {
+            this.vision.addObstacle(this.world.level);
+        }
+
         const memorySystem = this.memorySystem;
         const vision = this.vision;
 
@@ -321,19 +357,15 @@ export class Mob extends Vehicle {
             const competitor = this.world.entityManager.getEntityByName(`mob_${mobId}`) as Mob;
             if (!competitor || competitor.status !== STATUS_ALIVE) continue;
 
+            // Проверяем видимость
+            const isVisible = vision.visible(competitor.head.position) && competitor.active;
+
             if (!memorySystem.hasRecord(competitor)) {
                 memorySystem.createRecord(competitor);
             }
 
             const record = memorySystem.getRecord(competitor);
             if (!record) continue;
-
-            // ИСПОЛЬЗУЕМ WORLD ПОЗИЦИЮ как в оригинале
-            const worldPosition = new Vector3();
-            competitor.head.getWorldPosition(worldPosition);
-
-            // Проверяем видимость
-            const isVisible = vision.visible(worldPosition) && competitor.active;
 
             if (isVisible) {
                 record.visible = true;
@@ -345,38 +377,6 @@ export class Mob extends Vehicle {
         }
 
         return this;
-    }
-
-    // НАША СОБСТВЕННАЯ ПРОВЕРКА ВИДИМОСТИ
-    simpleVisibilityCheck(targetPosition: Vector3): boolean {
-        const origin = this.actualHeadPosition;
-        const target = targetPosition;
-
-        // 1. Проверка расстояния
-        const distance = origin.distanceTo(target);
-        if (distance > this.vision.range) {
-            return false;
-        }
-
-        // 2. Проверка поля зрения
-        const directionToTarget = new Vector3()
-            .subVectors(target, origin)
-            .normalize();
-
-        const dot = directionToTarget.dot(this.head.forward);
-        const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
-
-        if (angle > (this.vision.fieldOfView * 0.5)) {
-            return false;
-        }
-
-        // 3. Проверка препятствий (опционально, можно временно отключить)
-        if (this.vision.obstacles.length > 0) {
-            // Здесь можно добавить проверку препятствий когда будет нужно
-            // Пока пропускаем эту проверку
-        }
-
-        return true;
     }
 
     atPosition(position: Vector3) {
@@ -581,7 +581,7 @@ export class Mob extends Vehicle {
         AssaultRifleComponent.shoot[this.arId] = 0;
 
         const targetSystem = this.targetSystem;
-        const target = targetSystem.getTarget();
+        const target: Mob = targetSystem.getTarget() as Mob;
 
         if (target) {
             if (targetSystem.isTargetShootable()) {
@@ -601,7 +601,10 @@ export class Mob extends Vehicle {
                         if (mf) {
                             AssaultRifleComponent.shoot[this.arId] = 1;
                             const pos = mf.getWorldPosition(new TreeVector3())
-                            addBullet(this.arId, pos, target.position, this.world)
+
+                            const targetPos = target.position.clone();
+                            target.bounds.getCenter(targetPos);
+                            addBullet(this.arId, pos, targetPos, this.world)
                         }
 
                         this.lastShootTime = this.currentTime;

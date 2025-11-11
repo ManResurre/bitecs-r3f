@@ -15,6 +15,7 @@ import {
 } from "../components";
 import {CustomWorld} from "../../types";
 import {Mob} from "../../entities/Mob.ts";
+import {Vector3} from "yuka";
 
 const textEncoder = new TextEncoder();
 
@@ -29,7 +30,6 @@ export const spawnMobsSystem = defineSystem((world: CustomWorld) => {
             SpawnComponent.cooldown[spawnId] -= world.time.delta;
 
         const mobs = mobsQuery(world);
-
         if (
             SpawnComponent.cooldown[spawnId] <= 0 &&
             mobs.length < SpawnComponent.max[spawnId]
@@ -51,6 +51,11 @@ export const spawnMobsSystem = defineSystem((world: CustomWorld) => {
 
             //Добавляем Yuka Entity
             const yukaEntity = new Mob(eid, world);
+            yukaEntity.initializePosition(new Vector3(
+                PositionComponent.x[spawnId],
+                PositionComponent.y[spawnId],
+                PositionComponent.z[spawnId]
+            ))
             world.entityManager.add(yukaEntity);
             MobYukaEntityComponent.entityId[eid] = textEncoder.encode(yukaEntity.name);
 

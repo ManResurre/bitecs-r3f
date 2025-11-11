@@ -80,6 +80,7 @@ export const HealthPackComponent = defineComponent({
 });
 
 export const HealthPackSpawnComponent = defineComponent({});
+export const MobSpawnComponent = defineComponent({});
 
 export const AssaultRifleComponent = defineComponent({
     shoot: Types.i8,

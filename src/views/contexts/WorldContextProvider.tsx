@@ -1,4 +1,4 @@
-import {PropsWithChildren} from "react";
+import {PropsWithChildren, useEffect} from "react";
 import {LevelData} from "../../types/LevelData.tsx";
 import {createLevel} from "../../logic/createLevel.ts";
 import {pipe} from "bitecs";
@@ -10,12 +10,25 @@ import {loadNavMeshSystem} from "../../logic/systems/loadNavMeshSystem.ts";
 import {yukaIntegrationSystem} from "../../logic/systems/yukaIntegrationSystem.ts";
 import {spawnHealthSystem} from "../../logic/systems/spawnHealthSystem.ts";
 import {spawnBulletSystem} from "../../logic/systems/spawnBulletSystem.ts";
+import {useControls} from "leva";
+import {spawnMobsQuery} from "../../logic/queries";
+import {SpawnComponent} from "../../logic/components";
 
 export function WorldContextProvider({
                                          children,
                                          levelData,
                                      }: PropsWithChildren<{ levelData: LevelData }>) {
     const world = createLevel(levelData);
+    const spawnPoints = spawnMobsQuery(world);
+    const {countMobs} = useControls('World', {
+        countMobs: {min: 0, max: 50, value: 2, step: 1}
+    })
+
+    useEffect(() => {
+        for (const spawnId of spawnPoints) {
+            SpawnComponent.max[spawnId] = countMobs;
+        }
+    }, [countMobs])
 
     loadNavMeshSystem(world);
     // pathPlannerSystem(world);
@@ -26,9 +39,6 @@ export function WorldContextProvider({
         spawnHealthSystem,
         yukaIntegrationSystem,
         spawnBulletSystem
-        // pathDecisionSystem,    // Принятие решений о путях
-        // pathMovementSystem,    // Движение по пути
-        // physicsMovementSystem,
     );
 
     useFrame(() => {

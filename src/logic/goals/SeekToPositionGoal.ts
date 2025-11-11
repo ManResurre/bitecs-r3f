@@ -1,15 +1,13 @@
-import {Goal, SeekBehavior, Vector3} from 'yuka';
+import {Goal, NavMesh, Polygon, SeekBehavior, Vector3} from 'yuka';
 import {Mob} from "../../entities/Mob.ts";
 
 export class SeekToPositionGoal extends Goal<Mob> {
     target: Vector3;
+    targetRegion?: Polygon;
 
     constructor(owner: Mob, target = new Vector3()) {
-
         super(owner);
-
         this.target = target;
-
     }
 
     activate() {
@@ -17,20 +15,28 @@ export class SeekToPositionGoal extends Goal<Mob> {
             return;
 
         const owner = this.owner;
+        const navMesh = owner.world.navMesh as NavMesh;
 
-        // console.log(`Mob ${owner.eid} SeekToPositionGoal`);
+        // Простая корректировка цели
+        this.targetRegion = navMesh.getRegionForPoint(this.target, 4);
 
-        const seekBehavior: SeekBehavior = owner.steering.behaviors[2] as SeekBehavior;
-        seekBehavior.target.copy(this.target);
-        seekBehavior.active = true;
+        if (this.targetRegion) {
+            const seekBehavior: SeekBehavior = owner.steering.behaviors[2] as SeekBehavior;
+            seekBehavior.target.copy(this.targetRegion.centroid);
+            seekBehavior.active = true;
+        }
     }
 
     execute() {
         if (!this.owner)
             return;
 
-        if (this.owner.atPosition(this.target)) {
+        if (this.targetRegion && this.owner.atPosition(this.targetRegion.centroid)) {
             this.status = Goal.STATUS.COMPLETED;
+        }
+
+        if (!this.targetRegion) {
+            console.log('fail seek');
         }
     }
 

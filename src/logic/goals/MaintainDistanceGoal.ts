@@ -25,8 +25,6 @@ export class MaintainDistanceGoal extends CompositeGoal<Mob> {
         const owner = this.owner;
         if (!owner) return;
 
-        // console.log(`Mob ${owner.eid} MaintainDistanceGoal - ${this.currentTactic}`);
-
         this.updateTactic();
         this.executeTactic();
     }
@@ -104,6 +102,8 @@ export class MaintainDistanceGoal extends CompositeGoal<Mob> {
 
         if (targetPosition && this.isPositionValid(targetPosition)) {
             this.addSubgoal(new SeekToPositionGoal(owner, targetPosition));
+        } else {
+            this.status = Goal.STATUS.FAILED;
         }
     }
 
@@ -141,6 +141,13 @@ export class MaintainDistanceGoal extends CompositeGoal<Mob> {
 
     private isPositionValid(position: Vector3): boolean {
         const owner = this.owner!;
-        return owner.navMesh.getRegionForPoint(position, 1) !== null;
+
+        // 1. Проверка навигационного меша
+        if (owner.navMesh.getRegionForPoint(position, 4) === null) {
+            return false;
+        }
+
+        // 2. Проверка препятствий с помощью Vision
+        return owner.vision.visible(position);
     }
 }

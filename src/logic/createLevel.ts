@@ -1,6 +1,6 @@
 import {addComponent, addEntity, createWorld} from "bitecs";
 import {
-    HealthPackSpawnComponent,
+    HealthPackSpawnComponent, MobSpawnComponent,
     ParticleEmitterComponent,
     PositionComponent,
     SpawnComponent,
@@ -19,7 +19,7 @@ export function createLevel(levelData: LevelData) {
         },
         rigidBodies: new Map(),
         entityManager: new EntityManager(),
-        muzzleFlashSystem : new Map()
+        muzzleFlashSystem: new Map()
 
     }) as CustomWorld;
 
@@ -40,17 +40,20 @@ export function createLevel(levelData: LevelData) {
 }
 
 function setSpawnMobs(mobs: LevelData["mobs"], world: CustomWorld) {
-    for (let i = 0; i < mobs.length; i++) {
+    for (const mob of mobs) {
         const eid = addEntity(world);
 
         addComponent(world, SpawnComponent, eid);
         addComponent(world, PositionComponent, eid);
+        addComponent(world, MobSpawnComponent, eid);
 
-        PositionComponent.x[eid] = mobs[i].position[0];
-        PositionComponent.z[eid] = mobs[i].position[1];
+        PositionComponent.x[eid] = mob.position[0];
+        PositionComponent.y[eid] = mob.position[1];
+        PositionComponent.z[eid] = mob.position[2];
 
-        SpawnComponent.delay[eid] = mobs[i].delay;
-        SpawnComponent.max[eid] = mobs[i].max;
+        SpawnComponent.delay[eid] = mob.delay;
+        SpawnComponent.max[eid] = mob.max;
+
         SpawnComponent.cooldown[eid] = 0;
     }
 }
