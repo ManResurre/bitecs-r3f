@@ -46,7 +46,6 @@ export const spawnMobsQuery = defineQuery([
 
 export const mobsQuery = defineQuery([
     MobComponent,
-    MobYukaEntityComponent
 ]);
 
 export const assaultRifleQuery = defineQuery([

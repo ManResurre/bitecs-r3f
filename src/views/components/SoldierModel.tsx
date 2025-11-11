@@ -2,7 +2,7 @@ import {Html, useAnimations, useGLTF} from "@react-three/drei";
 import React, {RefObject, useEffect, useMemo, useRef, useState} from "react";
 import {cloneWithSkinning} from "../../utils/SceneHelper.ts";
 import {Mob} from "../../entities/Mob.ts";
-import {AnimationAction, Group, Mesh, MeshBasicMaterial, SphereGeometry, Vector3} from "three";
+import {AnimationAction, Group, Mesh, MeshBasicMaterial, SphereGeometry} from "three";
 import {useWorld} from "../hooks/useWorld.tsx";
 import {useFrame} from "@react-three/fiber";
 import AssaultRifle from "./AssaultRifle.tsx";
@@ -11,6 +11,7 @@ import {VisionHelper} from "./debug/VisionHelper.tsx";
 import {Target} from "./debug/VisionExample.tsx";
 import {useDebugCharacterBounds} from "./debug/DebugCharacterBounds.tsx";
 import {useControls} from "leva";
+import {MobComponent} from "../../logic/components";
 
 export interface SoldierModelProps {
     eid: number;
@@ -46,9 +47,13 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
         statusHelper: false
     }, {collapsed: true})
 
-    const mobEntity = useMemo(() => {
-        return world.entityManager?.getEntityByName(`mob_${eid}`) as Mob;
-    }, [world.entityManager, eid]);
+    // const mobEntity = useMemo(() => {
+    //     return world.entityManager?.getEntityByName(`mob_${eid}`) as Mob;
+    // }, [world.entityManager, eid]);
+    //
+    const crowdAgent = useMemo(() => {
+        return world.crowd?.getAgent(MobComponent.crowdId[eid]);
+    }, [world.crowd, eid]);
 
     const {scene, animations} = useGLTF("./models/soldier.glb");
     const {actions, names, mixer} = useAnimations(animations, soldierRef);
@@ -80,21 +85,21 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
         }
     }, [rightHandBone]);
 
-    useEffect(() => {
-        if (!mobEntity)
-            return;
-
-        if (weaponRef.current) {
-            mobEntity.setWeaponRef(weaponRef as RefObject<Group>);
-        }
-
-        if (soldierRef.current) {
-            mobEntity.setRenderComponentRef(soldierRef as RefObject<Group>);
-        }
-
-        mobEntity.setAnimations(mixer, actions as Record<string, AnimationAction>, names);
-
-    }, [mixer, actions, names]);
+    // useEffect(() => {
+    //     if (!mobEntity)
+    //         return;
+    //
+    //     if (weaponRef.current) {
+    //         mobEntity.setWeaponRef(weaponRef as RefObject<Group>);
+    //     }
+    //
+    //     if (soldierRef.current) {
+    //         mobEntity.setRenderComponentRef(soldierRef as RefObject<Group>);
+    //     }
+    //
+    //     mobEntity.setAnimations(mixer, actions as Record<string, AnimationAction>, names);
+    //
+    // }, [mixer, actions, names]);
 
     // Создаем геометрию и материал для сфер целей
     const targetSphereGeometry = useMemo(() => new SphereGeometry(1, 8, 8), []);
@@ -102,54 +107,54 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
 
     // Обновляем направления в useFrame
     useFrame(() => {
-        if (mobEntity && soldierRef.current) {
+        if (crowdAgent && soldierRef.current) {
             // Позиция всегда синхронизирована
-            soldierRef.current.position.copy(mobEntity.position.clone());
-
-            // Вращение модели определяет направление взгляда (стрельбы)
-            soldierRef.current.quaternion.copy(mobEntity.quaternion.clone());
-
-            if (debugArrowsRef.current) {
-                debugArrowsRef.current.position.copy(mobEntity.position);
-
-                debugArrowsRef.current.lookDirection.copy(mobEntity.lookDirection);
-                debugArrowsRef.current.moveDirection.copy(mobEntity.moveDirection);
-            }
-
-            // Обновляем VisionHelper напрямую из данных моба
-            if (visionHelperRef.current) {
-                visionHelperRef.current.position.copy(mobEntity.head.position);
-                visionHelperRef.current.quaternion.copy(mobEntity.head.rotation);
-            }
-
-            // Обновляем сферы целей
-            if (targetSpheresRef.current && mobEntity.memoryRecords) {
-                // Очищаем предыдущие сферы
-                while (targetSpheresRef.current.children.length > 0) {
-                    targetSpheresRef.current.remove(targetSpheresRef.current.children[0]);
-                }
-
-                // Создаем сферы для видимых целей
-                mobEntity.memoryRecords.forEach((record) => {
-                    if (record.visible && record.entity) {
-                        const sphere = new Mesh(targetSphereGeometry, targetSphereMaterial);
-                        sphere.position.copy(record.lastSensedPosition);
-                        targetSpheresRef.current!.add(sphere);
-                    }
-                });
-            }
-
-            if (statusHelper)
-                setStatus(mobEntity.getStatus())
+            soldierRef.current.position.copy(crowdAgent.position());
+        //
+        //     // Вращение модели определяет направление взгляда (стрельбы)
+        //     soldierRef.current.quaternion.copy(mobEntity.quaternion.clone());
+        //
+        //     if (debugArrowsRef.current) {
+        //         debugArrowsRef.current.position.copy(mobEntity.position);
+        //
+        //         debugArrowsRef.current.lookDirection.copy(mobEntity.lookDirection);
+        //         debugArrowsRef.current.moveDirection.copy(mobEntity.moveDirection);
+        //     }
+        //
+        //     // Обновляем VisionHelper напрямую из данных моба
+        //     if (visionHelperRef.current) {
+        //         visionHelperRef.current.position.copy(mobEntity.head.position);
+        //         visionHelperRef.current.quaternion.copy(mobEntity.head.rotation);
+        //     }
+        //
+        //     // Обновляем сферы целей
+        //     if (targetSpheresRef.current && mobEntity.memoryRecords) {
+        //         // Очищаем предыдущие сферы
+        //         while (targetSpheresRef.current.children.length > 0) {
+        //             targetSpheresRef.current.remove(targetSpheresRef.current.children[0]);
+        //         }
+        //
+        //         // Создаем сферы для видимых целей
+        //         mobEntity.memoryRecords.forEach((record) => {
+        //             if (record.visible && record.entity) {
+        //                 const sphere = new Mesh(targetSphereGeometry, targetSphereMaterial);
+        //                 sphere.position.copy(record.lastSensedPosition);
+        //                 targetSpheresRef.current!.add(sphere);
+        //             }
+        //         });
+        //     }
+        //
+        //     if (statusHelper)
+        //         setStatus(mobEntity.getStatus())
         }
     });
 
 
-    const debugBounds = useDebugCharacterBounds(mobEntity.bounds, {
-        enabled: true,
-        outerColor: 0xff0000,
-        innerColor: 0x00ff00
-    });
+    // const debugBounds = useDebugCharacterBounds(mobEntity.bounds, {
+    //     enabled: true,
+    //     outerColor: 0xff0000,
+    //     innerColor: 0x00ff00
+    // });
 
     return (
         <>
@@ -171,21 +176,21 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
                         )}
                     </Html>}
             </primitive>
-            <AssaultRifle ref={weaponRef} eid={mobEntity?.arId}/>
+            {/*<AssaultRifle ref={weaponRef} eid={mobEntity?.arId}/>*/}
 
 
-            {visionHelperDebug && <VisionHelper
-                ref={visionHelperRef}
-                fieldOfView={mobEntity.vision.fieldOfView}
-                range={mobEntity.vision.range}
-                division={16}
-                color="white"
-            />}
-            {targetHelper && <Target vision={mobEntity.vision} position={[0, 0, 0]}/>}
-            {targetSHelperDebug &&
-                <group ref={targetSpheresRef}/>
-            }
-            {boundsHelperDebug && debugBounds}
+            {/*{visionHelperDebug && <VisionHelper*/}
+            {/*    ref={visionHelperRef}*/}
+            {/*    fieldOfView={mobEntity.vision.fieldOfView}*/}
+            {/*    range={mobEntity.vision.range}*/}
+            {/*    division={16}*/}
+            {/*    color="white"*/}
+            {/*/>}*/}
+            {/*{targetHelper && <Target vision={mobEntity.vision} position={[0, 0, 0]}/>}*/}
+            {/*{targetSHelperDebug &&*/}
+            {/*    <group ref={targetSpheresRef}/>*/}
+            {/*}*/}
+            {/*{boundsHelperDebug && debugBounds}*/}
             {arrowsHelperDebug && <DebugArrows ref={debugArrowsRef}/>}
         </>
     );

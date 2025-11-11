@@ -1,28 +1,21 @@
-import React, {useLayoutEffect} from "react";
+import React, {useEffect} from "react";
 import {useLoader} from "@react-three/fiber";
 import {GLTFLoader} from "three/examples/jsm/Addons.js";
 import {Mesh, MeshBasicMaterial, MeshStandardMaterial, TextureLoader} from "three";
 import {useGLTF, useTexture} from '@react-three/drei';
-import {MeshGeometry} from "yuka";
 import {useWorld} from "../hooks/useWorld.tsx";
-import {LevelEntity} from "../../entities/LevelEntity.ts";
 
 const Level = () => {
     const world = useWorld()
     const {scene} = useGLTF('./models/level.glb');
     const lightmap = useTexture('./textures/lightmap.png');
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         if (!scene || !lightmap) return;
 
         const mesh = scene.getObjectByName('level') as Mesh;
 
         if (mesh && mesh.isMesh) {
-            const vertices = mesh.geometry.attributes.position.array as Float32Array;
-            const indices = mesh.geometry.index!.array as Uint16Array;
-            const geometry = new MeshGeometry(vertices, indices);
-            world.level = new LevelEntity(geometry);
-
             const material = mesh.material as MeshBasicMaterial;
             // Настройка lightmap
             lightmap.flipY = false;
@@ -56,6 +49,12 @@ const Level = () => {
         });
 
     }, [scene, lightmap]);
+
+    useEffect(() => {
+        if (!scene)
+            return;
+        world.initNav(scene);
+    }, [scene])
 
     return <>
         <primitive object={scene}/>

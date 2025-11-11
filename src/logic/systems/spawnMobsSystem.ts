@@ -5,22 +5,21 @@ import {
 } from "bitecs";
 import {mobsQuery, spawnMobsQuery} from "../queries";
 import {
-    CircleMovementComponent,
-    MobComponent, PathMovementComponent,
-    PositionComponent,
-    RotationComponent, SelectedCellComponent,
+    MobComponent,
     SpawnComponent,
-    SpeedComponent,
-    VelocityComponent, MobYukaEntityComponent,
 } from "../components";
-import {CustomWorld} from "../../types";
-import {Mob} from "../../entities/Mob.ts";
-import {Vector3} from "yuka";
+import {World} from "../../entities/World.ts";
+import {Vector3} from "three";
 
 const textEncoder = new TextEncoder();
 
-export const spawnMobsSystem = defineSystem((world: CustomWorld) => {
-    if (!world.navMesh)
+export enum MOB_STATE {
+    IDLE,
+    MOVING
+}
+
+export const spawnMobsSystem = defineSystem((world: World) => {
+    if (!world.crowd)
         return world;
 
     const spawnPoints = spawnMobsQuery(world);
@@ -36,31 +35,31 @@ export const spawnMobsSystem = defineSystem((world: CustomWorld) => {
         ) {
             //Add Mob
             const eid = addEntity(world);
-
-            addComponent(world, PositionComponent, eid);
-            addComponent(world, RotationComponent, eid);
-            addComponent(world, VelocityComponent, eid);
-            addComponent(world, SpeedComponent, eid);
             addComponent(world, MobComponent, eid);
-            addComponent(world, SelectedCellComponent, eid);
-            addComponent(world, CircleMovementComponent, eid);
-            addComponent(world, PathMovementComponent, eid);
-            addComponent(world, MobYukaEntityComponent, eid);
 
             MobComponent.name[eid] = textEncoder.encode('zombie');
+            MobComponent.state[eid] = MOB_STATE.IDLE;
 
-            //Добавляем Yuka Entity
-            const yukaEntity = new Mob(eid, world);
-            yukaEntity.initializePosition(new Vector3(
-                PositionComponent.x[spawnId],
-                PositionComponent.y[spawnId],
-                PositionComponent.z[spawnId]
-            ))
-            world.entityManager.add(yukaEntity);
-            MobYukaEntityComponent.entityId[eid] = textEncoder.encode(yukaEntity.name);
+            const nearestPoly = world.navMeshQuery?.findNearestPoly(
+                new Vector3(),
+                {halfExtents: {x: 2, y: 10, z: 2}}
+            );
+
+            const {agentIndex} = world.crowd.addAgent(nearestPoly?.nearestPoint!, {
+                radius: 0.4,
+                height: 1.8,
+                maxAcceleration: 2.0,    // Убедитесь, что ускорение не 0
+                maxSpeed: 1.5,           // Убедитесь, что скорость не 0
+                collisionQueryRange: 2.5,
+                separationWeight: 2.0,
+                updateFlags: 7           // Убедитесь, что флаги включают движение
+            });
+
+            MobComponent.crowdId[eid] = agentIndex;
+
+            console.log(mobs.length);
 
             SpawnComponent.cooldown[spawnId] += SpawnComponent.delay[spawnId];
-
         }
     }
 

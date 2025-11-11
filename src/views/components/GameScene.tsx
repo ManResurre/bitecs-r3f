@@ -10,12 +10,12 @@ const GameScene = () => {
     return <>
         <Level/>
         <NavMeshDebug/>
-        <HealthPackList/>
+        {/*<HealthPackList/>*/}
         <Mobs/>
-        <MuzzleLight/>
-        <Bullets
-            color={0x00ff00}
-        />
+        {/*<MuzzleLight/>*/}
+        {/*<Bullets*/}
+        {/*    color={0x00ff00}*/}
+        {/*/>*/}
 
         {/*<Watching*/}
         {/*    position={[0, 0, 0]}*/}

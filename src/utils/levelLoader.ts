@@ -5,8 +5,8 @@ export async function loadLevelData(): Promise<LevelData> {
         mobs: [
             {
                 name: 'zombie',
-                delay: 5000,
-                max: 1,
+                delay: 2,
+                max: 2,
                 position: [3, 0, 5]
             },
             // {
