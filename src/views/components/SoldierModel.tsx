@@ -2,7 +2,7 @@ import {Html, useAnimations, useGLTF} from "@react-three/drei";
 import React, {RefObject, useEffect, useMemo, useRef, useState} from "react";
 import {cloneWithSkinning} from "../../utils/SceneHelper.ts";
 import {Mob} from "../../entities/Mob.ts";
-import {AnimationAction, Group, Mesh, MeshBasicMaterial, SphereGeometry} from "three";
+import {AnimationAction, AnimationClip, Group, Mesh, MeshBasicMaterial, SphereGeometry, Quaternion} from "three";
 import {useWorld} from "../hooks/useWorld.tsx";
 import {useFrame} from "@react-three/fiber";
 import AssaultRifle from "./AssaultRifle.tsx";
@@ -12,6 +12,7 @@ import {Target} from "./debug/VisionExample.tsx";
 import {useDebugCharacterBounds} from "./debug/DebugCharacterBounds.tsx";
 import {useControls} from "leva";
 import {MobComponent} from "../../logic/components";
+import {Soldier} from "../../entities/Soldier.ts";
 
 export interface SoldierModelProps {
     eid: number;
@@ -28,6 +29,7 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
     const debugArrowsRef = useRef<DebugArrowsRef>(null);
     const visionHelperRef = useRef<Group>(null);
     const targetSpheresRef = useRef<Group>(null); // Ref для сфер целей
+    const soldierEntity = useMemo(() => world.getSoldier(eid), [eid, world]);
 
     const [status, setStatus] = useState<string[]>();
 
@@ -56,7 +58,7 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
     }, [world.crowd, eid]);
 
     const {scene, animations} = useGLTF("./models/soldier.glb");
-    const {actions, names, mixer} = useAnimations(animations, soldierRef);
+    const animation = useAnimations(animations, soldierRef);
 
     const clonedScene = useMemo(() => {
         return cloneWithSkinning(scene);
@@ -85,21 +87,15 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
         }
     }, [rightHandBone]);
 
-    // useEffect(() => {
-    //     if (!mobEntity)
-    //         return;
-    //
-    //     if (weaponRef.current) {
-    //         mobEntity.setWeaponRef(weaponRef as RefObject<Group>);
-    //     }
-    //
-    //     if (soldierRef.current) {
-    //         mobEntity.setRenderComponentRef(soldierRef as RefObject<Group>);
-    //     }
-    //
-    //     mobEntity.setAnimations(mixer, actions as Record<string, AnimationAction>, names);
-    //
-    // }, [mixer, actions, names]);
+    useEffect(() => {
+        if (!soldierEntity)
+            return;
+
+        soldierEntity.setRenderComponentRef(soldierRef as RefObject<Group>);
+        soldierEntity.setAnimation(animation);
+        soldierEntity.setWeaponRef(weaponRef as RefObject<Group>);
+
+    }, [animation]);
 
     // Создаем геометрию и материал для сфер целей
     const targetSphereGeometry = useMemo(() => new SphereGeometry(1, 8, 8), []);
@@ -110,42 +106,40 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
         if (crowdAgent && soldierRef.current) {
             // Позиция всегда синхронизирована
             soldierRef.current.position.copy(crowdAgent.position());
-        //
-        //     // Вращение модели определяет направление взгляда (стрельбы)
-        //     soldierRef.current.quaternion.copy(mobEntity.quaternion.clone());
-        //
-        //     if (debugArrowsRef.current) {
-        //         debugArrowsRef.current.position.copy(mobEntity.position);
-        //
-        //         debugArrowsRef.current.lookDirection.copy(mobEntity.lookDirection);
-        //         debugArrowsRef.current.moveDirection.copy(mobEntity.moveDirection);
-        //     }
-        //
-        //     // Обновляем VisionHelper напрямую из данных моба
-        //     if (visionHelperRef.current) {
-        //         visionHelperRef.current.position.copy(mobEntity.head.position);
-        //         visionHelperRef.current.quaternion.copy(mobEntity.head.rotation);
-        //     }
-        //
-        //     // Обновляем сферы целей
-        //     if (targetSpheresRef.current && mobEntity.memoryRecords) {
-        //         // Очищаем предыдущие сферы
-        //         while (targetSpheresRef.current.children.length > 0) {
-        //             targetSpheresRef.current.remove(targetSpheresRef.current.children[0]);
-        //         }
-        //
-        //         // Создаем сферы для видимых целей
-        //         mobEntity.memoryRecords.forEach((record) => {
-        //             if (record.visible && record.entity) {
-        //                 const sphere = new Mesh(targetSphereGeometry, targetSphereMaterial);
-        //                 sphere.position.copy(record.lastSensedPosition);
-        //                 targetSpheresRef.current!.add(sphere);
-        //             }
-        //         });
-        //     }
-        //
-        //     if (statusHelper)
-        //         setStatus(mobEntity.getStatus())
+            soldierRef.current.quaternion.copy(soldierEntity.rotation);
+
+            if (debugArrowsRef.current) {
+                debugArrowsRef.current.position.copy(soldierEntity.position);
+
+                debugArrowsRef.current.lookDirection.copy(soldierEntity.lookDirection);
+                debugArrowsRef.current.moveDirection.copy(soldierEntity.moveDirection);
+            }
+            //
+            //     // Обновляем VisionHelper напрямую из данных моба
+            //     if (visionHelperRef.current) {
+            //         visionHelperRef.current.position.copy(mobEntity.head.position);
+            //         visionHelperRef.current.quaternion.copy(mobEntity.head.rotation);
+            //     }
+            //
+            //     // Обновляем сферы целей
+            //     if (targetSpheresRef.current && mobEntity.memoryRecords) {
+            //         // Очищаем предыдущие сферы
+            //         while (targetSpheresRef.current.children.length > 0) {
+            //             targetSpheresRef.current.remove(targetSpheresRef.current.children[0]);
+            //         }
+            //
+            //         // Создаем сферы для видимых целей
+            //         mobEntity.memoryRecords.forEach((record) => {
+            //             if (record.visible && record.entity) {
+            //                 const sphere = new Mesh(targetSphereGeometry, targetSphereMaterial);
+            //                 sphere.position.copy(record.lastSensedPosition);
+            //                 targetSpheresRef.current!.add(sphere);
+            //             }
+            //         });
+            //     }
+            //
+            //     if (statusHelper)
+            //         setStatus(mobEntity.getStatus())
         }
     });
 

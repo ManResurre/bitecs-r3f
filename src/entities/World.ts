@@ -3,6 +3,7 @@ import {Crowd, init, NavMeshQuery} from "recast-navigation";
 import {Group, Mesh} from "three";
 import {threeToSoloNavMesh} from "@recast-navigation/three";
 import {NavMesh} from "@recast-navigation/core/dist/nav-mesh";
+import {Soldier} from "./Soldier.ts";
 
 export class World implements IWorld {
     time: {
@@ -50,5 +51,17 @@ export class World implements IWorld {
         this.navMesh = navMesh;
         this.crowd = crowd;
         this.navMeshQuery = new NavMeshQuery(navMesh);
+    }
+
+    getSoldier(id: number): Soldier {
+        let soldier: Soldier = this.entityManager.get(id);
+        if (soldier)
+            return soldier;
+
+        soldier = new Soldier(this, id);
+
+        this.entityManager.set(id, soldier);
+
+        return soldier;
     }
 }

@@ -49,7 +49,7 @@ export const spawnMobsSystem = defineSystem((world: World) => {
                 radius: 0.4,
                 height: 1.8,
                 maxAcceleration: 2.0,    // Убедитесь, что ускорение не 0
-                maxSpeed: 1.5,           // Убедитесь, что скорость не 0
+                maxSpeed: 2.5,           // Убедитесь, что скорость не 0
                 collisionQueryRange: 2.5,
                 separationWeight: 2.0,
                 updateFlags: 7           // Убедитесь, что флаги включают движение

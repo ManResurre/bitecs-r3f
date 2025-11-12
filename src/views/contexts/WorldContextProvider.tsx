@@ -8,6 +8,7 @@ import {WorldContext} from "./WorldContext.tsx";
 import {npcNavigationSystem} from "../../logic/systems/npcNavigationSystem.ts";
 import {spawnMobsSystem} from "../../logic/systems/spawnMobsSystem.ts";
 import {npcBehaviorSystem} from "../../logic/systems/npcBehaviorSystem.ts";
+import {animationMobSystem} from "../../logic/systems/animationSystem.ts";
 
 export function WorldContextProvider({
                                          children,
@@ -34,6 +35,7 @@ export function WorldContextProvider({
         spawnMobsSystem,
         npcBehaviorSystem,
         npcNavigationSystem,
+        animationMobSystem,
         // spawnHealthSystem,
         // yukaIntegrationSystem,
         // yukaBrainSystem,
