@@ -1,8 +1,7 @@
 import {IWorld} from "bitecs";
-import {Crowd, init, NavMeshQuery} from "recast-navigation";
+import {Crowd, init, NavMeshQuery, NavMesh} from "recast-navigation";
 import {Group, Mesh} from "three";
 import {threeToSoloNavMesh} from "@recast-navigation/three";
-import {NavMesh} from "@recast-navigation/core/dist/nav-mesh";
 import {Soldier} from "./Soldier.ts";
 
 export class World implements IWorld {
@@ -16,7 +15,9 @@ export class World implements IWorld {
         height: number;
     } = {width: 0, height: 0};
 
-    entityManager = new Map();
+    entityManager = new Map<number, Soldier>();
+
+    muzzleFlashSystem = new Map();
 
     private isInit = false;
 
@@ -31,14 +32,7 @@ export class World implements IWorld {
         await init();
 
         const mesh = scene.getObjectByName('level') as Mesh;
-        const {success, navMesh} = threeToSoloNavMesh([mesh], {
-            cellSize: 0.3,
-            cellHeight: 0.2,
-            agentHeight: 1.8,
-            agentRadius: 0.4,
-            agentMaxClimb: 0.9,
-            agentMaxSlope: 45,
-        });
+        const {success, navMesh} = threeToSoloNavMesh([mesh]);
 
         if (!success) {
             console.error('Failed to generate NavMesh');
@@ -54,7 +48,7 @@ export class World implements IWorld {
     }
 
     getSoldier(id: number): Soldier {
-        let soldier: Soldier = this.entityManager.get(id);
+        let soldier = this.entityManager.get(id);
         if (soldier)
             return soldier;
 

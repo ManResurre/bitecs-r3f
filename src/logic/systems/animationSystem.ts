@@ -11,7 +11,7 @@ export const animationMobSystem = defineSystem((world: World) => {
     for (const mobId of mobs) {
         const entity: Soldier = world.entityManager.get(mobId);
         if (entity)
-            entity.update();
+            entity.update(world.time.delta);
     }
     // console.log(world.entityManager);
 

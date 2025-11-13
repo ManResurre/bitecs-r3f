@@ -13,6 +13,7 @@ import {useDebugCharacterBounds} from "./debug/DebugCharacterBounds.tsx";
 import {useControls} from "leva";
 import {MobComponent} from "../../logic/components";
 import {Soldier} from "../../entities/Soldier.ts";
+import {Vector3} from "../../core/math/Vector3.ts";
 
 export interface SoldierModelProps {
     eid: number;
@@ -114,12 +115,12 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
                 debugArrowsRef.current.lookDirection.copy(soldierEntity.lookDirection);
                 debugArrowsRef.current.moveDirection.copy(soldierEntity.moveDirection);
             }
-            //
-            //     // Обновляем VisionHelper напрямую из данных моба
-            //     if (visionHelperRef.current) {
-            //         visionHelperRef.current.position.copy(mobEntity.head.position);
-            //         visionHelperRef.current.quaternion.copy(mobEntity.head.rotation);
-            //     }
+
+            // Обновляем VisionHelper напрямую из данных моба
+            if (visionHelperRef.current) {
+                visionHelperRef.current.position.copy(soldierEntity.position).add(new Vector3(0, 1.5, 0));
+                visionHelperRef.current.quaternion.copy(soldierEntity.rotation);
+            }
             //
             //     // Обновляем сферы целей
             //     if (targetSpheresRef.current && mobEntity.memoryRecords) {
@@ -170,17 +171,16 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
                         )}
                     </Html>}
             </primitive>
-            {/*<AssaultRifle ref={weaponRef} eid={mobEntity?.arId}/>*/}
+            <AssaultRifle ref={weaponRef} eid={soldierEntity?.arId}/>
 
-
-            {/*{visionHelperDebug && <VisionHelper*/}
-            {/*    ref={visionHelperRef}*/}
-            {/*    fieldOfView={mobEntity.vision.fieldOfView}*/}
-            {/*    range={mobEntity.vision.range}*/}
-            {/*    division={16}*/}
-            {/*    color="white"*/}
-            {/*/>}*/}
-            {/*{targetHelper && <Target vision={mobEntity.vision} position={[0, 0, 0]}/>}*/}
+            {visionHelperDebug && <VisionHelper
+                ref={visionHelperRef}
+                fieldOfView={soldierEntity.vision.fieldOfView}
+                range={soldierEntity.vision.range}
+                division={16}
+                color="white"
+            />}
+            {targetHelper && <Target entity={soldierEntity} position={[0, 0, 0]}/>}
             {/*{targetSHelperDebug &&*/}
             {/*    <group ref={targetSpheresRef}/>*/}
             {/*}*/}

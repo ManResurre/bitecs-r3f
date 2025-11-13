@@ -46,7 +46,7 @@ export const spawnMobsSystem = defineSystem((world: World) => {
             );
 
             const {agentIndex} = world.crowd.addAgent(nearestPoly?.nearestPoint!, {
-                radius: 0.4,
+                radius: 1,
                 height: 1.8,
                 maxAcceleration: 2.0,    // Убедитесь, что ускорение не 0
                 maxSpeed: 2.5,           // Убедитесь, что скорость не 0

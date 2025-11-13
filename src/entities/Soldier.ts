@@ -8,12 +8,19 @@ import {
 import {World} from "./World.ts";
 import {RefObject} from "react";
 import {CrowdAgent} from "recast-navigation";
-import {MobComponent} from "../logic/components";
+import {AssaultRifleComponent, MobComponent} from "../logic/components";
 import {Vector3} from "../core/math/Vector3.ts";
 import {Quaternion} from "../core/math/Quaternion.ts";
+import {addComponent, addEntity} from "bitecs";
+import {Vision} from "../core/Vision.ts";
+import {GameEntity} from "./GameEntity.ts";
+import {Regulator} from "../core/Regulator.ts";
+import {TargetSystem} from "../core/TargetSystem.ts";
+import {MemorySystem} from "../core/memory/MemorySystem.ts";
+import {mobsQuery} from "../logic/queries";
 
 type Api<T extends AnimationClip> = {
-    ref: React.RefObject<Object3D | undefined | null>;
+    ref: RefObject<Object3D | undefined | null>;
     clips: AnimationClip[];
     mixer: AnimationMixer;
     names: T['name'][];
@@ -34,15 +41,13 @@ const DIRECTIONS = [
     {direction: new Vector3(1, 0, 0), name: 'soldier_right'}
 ];
 
-export class Soldier {
-    id: number;
-    world: World;
+export class Soldier extends GameEntity {
     status: SOLDIER_STATUS = SOLDIER_STATUS.ALIVE;
     crowdAgent: CrowdAgent;
 
-    soldierRef: RefObject<Group>;
-    weaponRef: RefObject<Group>;
-    animation: Api<AnimationClip>;
+    soldierRef?: RefObject<Group>;
+    weaponRef?: RefObject<Group>;
+    animation?: Api<AnimationClip>;
 
     lookDirection = new Vector3(0, 0, 1);
     moveDirection = new Vector3(0, 0, 1);
@@ -55,27 +60,34 @@ export class Soldier {
 
     rotation = new Quaternion();
 
+    arId: number;
+
+    vision: Vision;
+
+    visionRegulator = new Regulator(2); // 2 раза/сек = каждые 30 кадров
+    targetSystemRegulator = new Regulator(2); // 2 раза/сек = каждые 30 кадров
+    reactionRegulator = new Regulator(2); // 2 раза/сек = каждые 30 кадров
+
+    memorySystem = new MemorySystem(this);
+    targetSystem = new TargetSystem(this);
+
+    lastShootTime = 0;
+    shotTimeInterval = 0.5;
+
     constructor(world: World, id: number) {
-        this.world = world;
-        this.id = id;
+        super(world, id);
+
         this.crowdAgent = world.crowd!.getAgent(MobComponent.crowdId[id]) as CrowdAgent;
-        // console.log(this.crowdAgent.velocity());
+
+        this.arId = addEntity(world);
+        addComponent(this.world, AssaultRifleComponent, this.arId);
+        AssaultRifleComponent.shoot[this.arId] = 0;
+
+        this.vision = new Vision(world.navMesh!);
     }
 
     get position() {
-        return this.crowdAgent.position();
-    }
-
-    getQuaternion() {
-        const velocity = this.crowdAgent.velocity();
-        const targetQuaternion = new Quaternion();
-
-        if (velocity.x !== 0 || velocity.z !== 0) {
-            const direction = new Vector3(velocity.x, 0, velocity.z).normalize();
-            targetQuaternion.setFromUnitVectors(this.tempForward, direction);
-        }
-
-        return targetQuaternion;
+        return new Vector3().copy(this.crowdAgent.position());
     }
 
     get speed() {
@@ -87,11 +99,57 @@ export class Soldier {
         return this.crowdAgent.maxSpeed;
     }
 
-    update() {
-        const velocity = this.crowdAgent.velocity();
-        const direction = new Vector3(velocity.x, 0, velocity.z).normalize();
-        this.lookDirection.copy(direction);
+    update(delta: number) {
+        const MAX_GAME_TIME = 24 * 60 * 60;
+        this.currentTime = (this.currentTime + delta) % MAX_GAME_TIME;
+        AssaultRifleComponent.shoot[this.arId] = 0;
+
+        if (this.visionRegulator.ready()) {
+            this.updateVision();
+        }
+
+        if (this.targetSystemRegulator.ready()) {
+            this.targetSystem.update();
+        }
+
+        if (this.reactionRegulator.ready()) {
+            this.updateAimAndShot();
+        }
+
         this.updateAnimations();
+    }
+
+    updateVision() {
+        const mobIds = mobsQuery(this.world);
+
+        for (const mobId of mobIds) {
+            if (this.id == mobId) continue;
+
+            const competitor = this.world.entityManager.get(mobId);
+
+            if (!competitor)
+                continue;
+
+            // Проверяем видимость
+            const isVisible = this.isVisible(competitor.position);
+
+            if (!this.memorySystem.hasRecord(competitor)) {
+                this.memorySystem.createRecord(competitor);
+            }
+
+            const record = this.memorySystem.get(competitor.id);
+            if (!record) continue;
+
+            if (isVisible) {
+                record.visible = true;
+                record.timeLastSensed = this.currentTime;
+                record.lastSensedPosition.copy(competitor.position);
+            } else {
+                record.visible = false;
+            }
+        }
+
+        return this;
     }
 
     setRenderComponentRef(soldierRef: RefObject<Group>) {
@@ -104,9 +162,6 @@ export class Soldier {
 
     setAnimation(animation: Api<AnimationClip>) {
         this.animation = animation;
-        // if (this.animation.actions['soldier_idle']) {
-        //     this.animation.actions['soldier_idle'].play();
-        // }
     }
 
     updateAnimations() {
@@ -124,6 +179,9 @@ export class Soldier {
     }
 
     private calculateAnimationWeights(lookDir: Vector3, moveDir: Vector3) {
+        if (!this.animation)
+            return;
+
         this.positiveWeightings.length = 0;
         let sum = 0;
 
@@ -170,6 +228,42 @@ export class Soldier {
                     action.play();
                 }
             }
+        }
+    }
+
+    isVisible(position: Vector3) {
+        return this.vision.checkFieldOfView(
+            this.position,
+            this.lookDirection,
+            position,
+            50,
+            120
+        );
+    }
+
+    rotateTo(target: Vector3) {
+        const direction = new Vector3().subVectors(target, this.position);
+        direction.normalize();
+
+        // Обновляем направление взгляда
+        this.lookDirection.copy(direction);
+    }
+
+    updateAimAndShot() {
+        const targetSystem = this.targetSystem;
+        const target = targetSystem.getTarget();
+
+        if (target) {
+            if (targetSystem.isTargetShootable()) {
+                this.rotateTo(target.position);
+                // Начало стрельбы
+                if (this.lastShootTime + this.shotTimeInterval < this.currentTime) {
+                    AssaultRifleComponent.shoot[this.arId] = 1;
+                    this.lastShootTime = this.currentTime;
+                }
+            }
+        } else {
+            this.lookDirection.copy(this.moveDirection)
         }
     }
 }

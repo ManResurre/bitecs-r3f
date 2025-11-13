@@ -3016,6 +3016,7 @@ __metadata:
     vite: "npm:^7.1.10"
     vitest: "npm:^3.2.4"
     wrangler: "npm:^4.43.0"
+    xstate: "npm:^5.24.0"
     yuka: "npm:0.7.8"
   languageName: unknown
   linkType: soft
@@ -7571,6 +7572,13 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: 10c0/25eb33aff17edcb90721ed6b0eb250976328533ad3cd1a28a274bd263682e7296a6591ff1436d6cbc50fa67463158b062f9d1122013b361cec99a05f84680e06
+  languageName: node
+  linkType: hard
+
+"xstate@npm:^5.24.0":
+  version: 5.24.0
+  resolution: "xstate@npm:5.24.0"
+  checksum: 10c0/1ecd564493560a6ab0412b5b0edc9e4ed484a681941bb1ce47712f74cf7e418f3239153d6c80a322f15968284937ba098865015ac3cfb76d33ffffaf4cebbcd5
   languageName: node
   linkType: hard
 

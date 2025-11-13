@@ -26,7 +26,8 @@ const Level = () => {
                 color: material.color,
                 transparent: material.transparent,
                 opacity: material.opacity,
-
+                roughness: 0.8,
+                metalness: 0.1,
                 // Настройки lightmap
                 lightMap: lightmap,
             });
@@ -56,13 +57,11 @@ const Level = () => {
         world.initNav(scene);
     }, [scene])
 
-    return <>
-        <primitive object={scene}/>
-    </>;
+    return <primitive object={scene}/>;
 }
 
 // Предзагрузка ресурсов
-useLoader.preload(GLTFLoader, './models/level.glb');
+useLoader.preload(GLTFLoader, './models/level-transformed.glb');
 useLoader.preload(TextureLoader, './textures/lightmap.png');
 
 export default React.memo(Level);

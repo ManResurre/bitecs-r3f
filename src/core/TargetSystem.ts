@@ -1,21 +1,20 @@
-import {Mob} from "../entities/Mob.ts";
-import {MemoryRecord} from "yuka";
-
+import {GameEntity} from "../entities/GameEntity.ts";
+import {MemoryRecord} from "./memory/MemoryRecord.ts";
 
 export class TargetSystem {
-    owner: Mob;
+    owner: GameEntity;
 
-    visibleRecords: MemoryRecord[] = [];
-    invisibleRecords: MemoryRecord[] = [];
+    visibleRecords: MemoryRecord<GameEntity>[] = [];
+    invisibleRecords: MemoryRecord<GameEntity>[] = [];
 
-    private currentRecord: MemoryRecord | null = null;
+    private currentRecord: MemoryRecord<GameEntity> | null = null;
 
-    constructor(owner: Mob) {
-        this.owner = owner; // enemy
+    constructor(owner: GameEntity) {
+        this.owner = owner;
     }
 
     update() {
-        const records: MemoryRecord[] = this.owner.memoryRecords;
+        const records: MemoryRecord<GameEntity>[] = this.owner.memorySystem.getValidMemoryRecords(this.owner.currentTime);
         this.currentRecord = null;
         this.visibleRecords.length = 0;
         this.invisibleRecords.length = 0;
@@ -34,7 +33,7 @@ export class TargetSystem {
             // if there are visible records, select the closest one
             let minDistance = Infinity;
             for (const record of this.visibleRecords) {
-                const distance = this.owner.position.squaredDistanceTo(record.lastSensedPosition);
+                const distance = this.owner.position.distanceToSquared(record.lastSensedPosition);
                 if (distance < minDistance) {
                     minDistance = distance;
                     this.currentRecord = record;
