@@ -33,7 +33,7 @@ export function WorldContextProvider({
     const pipeline = pipe(
         timeSystem,
         spawnMobsSystem,
-        npcBehaviorSystem,
+        // npcBehaviorSystem,
         npcNavigationSystem,
         animationMobSystem,
         // spawnHealthSystem,
