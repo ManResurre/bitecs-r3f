@@ -1,7 +1,7 @@
 import {defineSystem} from "bitecs";
 import {mobsQuery} from "../queries";
 import {World} from "../../entities/World.ts";
-import {Soldier} from "../../entities/Soldier.ts";
+import {Soldier} from "../../entities/soldier/Soldier.ts";
 
 export const animationMobSystem = defineSystem((world: World) => {
     if (!world?.crowd)

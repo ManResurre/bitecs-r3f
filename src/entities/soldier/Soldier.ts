@@ -5,23 +5,26 @@ import {
     Group,
     Object3D,
 } from "three";
-import {World} from "./World.ts";
+import {World} from "../World.ts";
 import {RefObject} from "react";
 import {CrowdAgent} from "recast-navigation";
-import {AssaultRifleComponent, MobComponent} from "../logic/components";
-import {Vector3} from "../core/math/Vector3.ts";
-import {Quaternion} from "../core/math/Quaternion.ts";
+import {AssaultRifleComponent, MobComponent} from "../../logic/components";
+import {Vector3} from "../../core/math/Vector3.ts";
+import {Quaternion} from "../../core/math/Quaternion.ts";
 import {addComponent, addEntity} from "bitecs";
-import {Vision} from "../core/Vision.ts";
-import {GameEntity} from "./GameEntity.ts";
-import {Regulator} from "../core/Regulator.ts";
-import {TargetSystem} from "../core/TargetSystem.ts";
-import {MemorySystem} from "../core/memory/MemorySystem.ts";
-import {mobsQuery} from "../logic/queries";
+import {GameEntity} from "../GameEntity.ts";
+import {Regulator} from "../../core/Regulator.ts";
+import {TargetSystem} from "../../core/TargetSystem.ts";
+import {MemorySystem} from "../../core/memory/MemorySystem.ts";
+import {mobsQuery} from "../../logic/queries";
 import {Actor, AnyActorLogic, createActor, SnapshotFrom} from "xstate";
-import {soldierMachine} from "./SoldierStateMachine.ts";
+import {soldierMachine} from "../SoldierStateMachine.ts";
+import {EntityAnimatable, WithAnimation} from "./decorators/WithAnimation.ts";
+import {EntityVision, WithVision} from "./decorators/WithVision.ts";
+import {Vision} from "../../core/Vision.ts";
+import {WithCombat} from "./decorators/WithCombat.ts";
 
-type Api<T extends AnimationClip> = {
+export type Api<T extends AnimationClip> = {
     ref: RefObject<Object3D | undefined | null>;
     clips: AnimationClip[];
     mixer: AnimationMixer;
@@ -31,53 +34,32 @@ type Api<T extends AnimationClip> = {
     };
 };
 
-export enum SOLDIER_STATUS {
-    ALIVE,
-    DEAD
-}
-
-const DIRECTIONS = [
-    {direction: new Vector3(0, 0, 1), name: 'soldier_forward'},
-    {direction: new Vector3(0, 0, -1), name: 'soldier_backward'},
-    {direction: new Vector3(-1, 0, 0), name: 'soldier_left'},
-    {direction: new Vector3(1, 0, 0), name: 'soldier_right'}
-];
-
-export class Soldier extends GameEntity {
-    status: SOLDIER_STATUS = SOLDIER_STATUS.ALIVE;
+@WithAnimation
+@WithVision
+@WithCombat
+export class Soldier extends GameEntity implements EntityAnimatable, EntityVision {
     crowdAgent: CrowdAgent;
 
     soldierRef?: RefObject<Group>;
     weaponRef?: RefObject<Group>;
-    animation?: Api<AnimationClip>;
 
     lookDirection = new Vector3(0, 0, 1);
     moveDirection = new Vector3(0, 0, 1);
-
-    private tempForward = new Vector3(0, 0, 1);
-    private tempUp = new Vector3(0, 1, 0);
-    private transformedDirection = new Vector3();
-    private weightings: number[] = [0, 0, 0, 0];
-    private positiveWeightings: number[] = [];
-
     rotation = new Quaternion();
+    private tempUp = new Vector3(0, 1, 0);
 
     arId: number;
 
-    vision: Vision;
-
-    visionRegulator = new Regulator(2); // 2 раза/сек = каждые 30 кадров
     targetSystemRegulator = new Regulator(2); // 2 раза/сек = каждые 30 кадров
     reactionRegulator = new Regulator(2); // 2 раза/сек = каждые 30 кадров
     updateRegulator = new Regulator(0); // 2 раза/сек = каждые 30 кадров
 
     memorySystem = new MemorySystem(this);
-    targetSystem = new TargetSystem(this);
 
-    lastShootTime = 0;
-    shotTimeInterval = 0.5;
 
-    stateActor: Actor<AnyActorLogic>;
+
+
+
     currentState: SnapshotFrom<AnyActorLogic>;
     currentTargetPoint = new Vector3(1, 0, 1);
 
@@ -87,6 +69,11 @@ export class Soldier extends GameEntity {
         ['combat.attack.pursuing', this.startPursuing]
     ]);
 
+    declare updateAnimations: () => void;
+    declare updateCombatBehavior: () => void;
+    declare visionRegulator: Regulator;
+    declare vision: Vision;
+
     constructor(world: World, id: number) {
         super(world, id);
 
@@ -95,8 +82,6 @@ export class Soldier extends GameEntity {
         this.arId = addEntity(world);
         addComponent(this.world, AssaultRifleComponent, this.arId);
         AssaultRifleComponent.shoot[this.arId] = 0;
-
-        this.vision = new Vision(world.navMesh!);
 
         // Инициализация актора машины состояний
         this.stateActor = createActor(soldierMachine).start();
@@ -211,66 +196,7 @@ export class Soldier extends GameEntity {
         // Дальнейшее движение будет управляться в updateCombatBehavior
     }
 
-    updateCombatBehavior() {
-        const target = this.targetSystem.getTarget();
-        const context = this.stateActor.getSnapshot().context;
 
-        if (target) {
-            if (this.currentState.matches('movement')) {
-                this.stateActor.send({type: 'ENEMY_SPOTTED'});
-                this.crowdAgent.resetMoveTarget();
-            }
-
-            if (this.currentState.matches('combat.attack')) {
-                this.updateAttackBehavior(target, context);
-                this.updateAimAndShot(target);
-            }
-        } else {
-            this.lookDirection.copy(this.moveDirection);
-
-            if (this.currentState.matches('combat')) {
-                this.stateActor.send({type: 'HUNT'});
-
-            }
-        }
-    }
-
-    updateAttackBehavior(target: any, context: any) {
-        const distance = this.position.distanceTo(target.position);
-        // Определяем основное поведение на основе дистанции
-        if (distance < 10) {
-            // Слишком близко - отступаем
-            if (!this.currentState.matches('combat.attack.retreating')) {
-                this.stateActor.send({type: 'RUN'});
-            }
-        } else {
-            // Слишком далеко - преследуем
-            if (!this.currentState.matches('combat.attack.pursuing')) {
-                this.stateActor.send({type: 'HUNT'});
-            }
-        }
-
-        // Определяем нужно ли маневрировать
-        const shouldDodge = this.shouldDodge(target);
-        if (shouldDodge && !context.isDodging) {
-            this.stateActor.send({type: 'DODGE_ON'});
-        } else if (!shouldDodge && context.isDodging) {
-            this.stateActor.send({type: 'DODGE_OFF'});
-        }
-
-        // Выполняем соответствующее боевое поведение
-        this.executeCombatMovement(target, context);
-    }
-
-    executeCombatMovement(target: any, context: any) {
-        const isRetreating = this.currentState.matches('combat.attack.retreating');
-
-        if (isRetreating) {
-            this.executeRetreating(target, context.isDodging);
-        } else {
-            this.executePursuing(target, context.isDodging);
-        }
-    }
 
     executeRetreating(target: any, isDodging: boolean) {
         // Логика отступления
@@ -331,24 +257,6 @@ export class Soldier extends GameEntity {
         }
     }
 
-    shouldDodge(target: any): boolean {
-        // Простая логика для определения когда нужно маневрировать
-        // Например: маневрировать с 50% вероятностью каждые 2 секунды
-        return Math.random() < 0.5 && this.currentTime % 2 < 0.1;
-    }
-
-    updateAimAndShot(target: GameEntity) {
-        if (target && this.targetSystem.isTargetShootable()) {
-            this.rotateTo(target.position);
-
-            // Стрельба в боевых состояниях
-            if (this.currentState.matches('combat') &&
-                this.lastShootTime + this.shotTimeInterval < this.currentTime) {
-                AssaultRifleComponent.shoot[this.arId] = 1;
-                this.lastShootTime = this.currentTime;
-            }
-        }
-    }
 
     updateVision() {
         const mobIds = mobsQuery(this.world);
@@ -387,83 +295,6 @@ export class Soldier extends GameEntity {
         this.weaponRef = weaponRef;
     }
 
-    setAnimation(animation: Api<AnimationClip>) {
-        this.animation = animation;
-    }
-
-    updateAnimations() {
-        if (!this.animation)
-            return;
-
-        this.rotation.lookAt(
-            this.tempForward,
-            this.lookDirection,
-            this.tempUp
-        );
-
-        const velocity = this.crowdAgent.velocity();
-        this.moveDirection.copy(velocity).normalize();
-        this.calculateAnimationWeights(this.lookDirection, this.moveDirection);
-
-        if (this.isVelocityZero()) {
-            this.animation.actions["soldier_idle"]?.play()
-        } else {
-            this.animation.actions["soldier_idle"]?.stop()
-        }
-    }
-
-    private calculateAnimationWeights(lookDir: Vector3, moveDir: Vector3) {
-        if (!this.animation)
-            return;
-
-        this.positiveWeightings.length = 0;
-        let sum = 0;
-
-        // Вычисляем кватернион для преобразования направлений
-        // В оригинале это делается на основе разницы между forward и moveDirection
-        const rotationQuaternion = new Quaternion();
-        rotationQuaternion.lookAt(this.tempForward, moveDir, this.tempUp);
-
-        for (let i = 0; i < DIRECTIONS.length; i++) {
-            // Преобразуем локальное направление в мировое пространство
-            this.transformedDirection.copy(DIRECTIONS[i].direction).applyRotation(rotationQuaternion);
-
-            // Вычисляем скалярное произведение с направлением взгляда
-            const dot = this.transformedDirection.dot(lookDir);
-            this.weightings[i] = (dot < 0) ? 0 : dot;
-
-            const actionName = DIRECTIONS[i].name;
-            const action = this.animation.actions[actionName];
-            // console.log(action);
-
-            if (action) {
-                if (this.weightings[i] > 0.001) {
-                    action.enabled = true;
-                    this.positiveWeightings.push(i);
-                    sum += this.weightings[i];
-
-                } else {
-                    action.enabled = false;
-                    action.weight = 0;
-                }
-            }
-        }
-
-        for (let i = 0; i < this.positiveWeightings.length; i++) {
-            const index = this.positiveWeightings[i];
-            const actionName = DIRECTIONS[index].name;
-            const action = this.animation.actions[actionName];
-
-            if (action) {
-                action.weight = this.weightings[index] / sum;
-                action.timeScale = Math.max(0.1, Math.min(2.0, this.speed / this.maxSpeed));
-
-                if (!action.isRunning()) {
-                    action.play();
-                }
-            }
-        }
-    }
 
     isVisible(position: Vector3) {
         return this.vision.checkFieldOfView(

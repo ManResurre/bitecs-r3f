@@ -2,7 +2,7 @@ import {IWorld} from "bitecs";
 import {Crowd, init, NavMeshQuery, NavMesh} from "recast-navigation";
 import {Group, Mesh} from "three";
 import {threeToSoloNavMesh} from "@recast-navigation/three";
-import {Soldier} from "./Soldier.ts";
+import {Soldier} from "./soldier/Soldier.ts";
 
 export class World implements IWorld {
     time: {

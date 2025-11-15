@@ -5,7 +5,7 @@ import * as YUKA from 'yuka';
 import {useWorld} from "../../hooks/useWorld.tsx";
 import {GameEntity, MeshGeometry, Ray, Vector3} from "yuka";
 import {Vision} from "../../../core/Vision.ts";
-import {Soldier} from "../../../entities/Soldier.ts";
+import {Soldier} from "../../../entities/soldier/Soldier.ts";
 
 class ObstacleEntity extends GameEntity {
     geometry: MeshGeometry;

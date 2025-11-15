@@ -12,7 +12,7 @@ import {Target} from "./debug/VisionExample.tsx";
 import {useDebugCharacterBounds} from "./debug/DebugCharacterBounds.tsx";
 import {useControls} from "leva";
 import {MobComponent} from "../../logic/components";
-import {Soldier} from "../../entities/Soldier.ts";
+import {Soldier} from "../../entities/soldier/Soldier.ts";
 import {Vector3} from "../../core/math/Vector3.ts";
 
 export interface SoldierModelProps {
@@ -140,7 +140,7 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
             //     }
             //
             //     if (statusHelper)
-            //         setStatus(mobEntity.getStatus())
+            //         setStatus(soldierEntity.getStatus())
         }
     });
 
