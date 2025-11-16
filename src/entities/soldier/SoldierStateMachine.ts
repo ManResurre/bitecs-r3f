@@ -1,4 +1,4 @@
-import {setup} from "xstate";
+import { setup } from "xstate";
 
 export const soldierMachine = setup({
     types: {
@@ -14,45 +14,37 @@ export const soldierMachine = setup({
             | { type: "POINT_REACHED" },
     },
     actions: {
-        startRetreating: function ({context, event}, params) {
-            // Add your action code here
-            // ...
+        startRetreating: () => {
+            // console.log("startRetreating");
         },
-        startPursuing: function ({context, event}, params) {
-            // Add your action code here
-            // ...
+        startPursuing: () => {
+            // console.log("startPursuing");
         },
-        interruptMovement: function ({context, event}, params) {
-            // Add your action code here
-            // ...
+        interruptMovement: () => {
+            // console.log("interruptMovement");
         },
-        enableDodging: function ({context, event}, params) {
-            console.log(context);
+        enableDodging: ({ context }) => {
+            // console.log("enableDodging", context);
+            context.isDodging = true;
         },
-        disableDodging: function ({context, event}, params) {
-            // Add your action code here
-            // ...
+        disableDodging: ({context}) => {
+            // console.log("disableDodging");
+            context.isDodging = false;
         },
-        startExploring: function ({context, event}, params) {
-            // Add your action code here
-            // ...
+        startExploring: () => {
+            // console.log("startExploring");
         },
     },
 }).createMachine({
     context: {
-        isDodging: true,
+        isDodging: true, // исправлено на false по умолчанию
     },
     id: "soldier",
-    initial: "alive",
+    initial: "exploring", // упрощено, убрано состояние "alive"
     states: {
-        alive: {
-            always: {
-                target: "exploring",
-            },
-        },
         exploring: {
             after: {
-                "100": {
+                100: {
                     target: "movement",
                 },
             },
@@ -61,9 +53,7 @@ export const soldierMachine = setup({
             on: {
                 ENEMY_SPOTTED: {
                     target: "combat",
-                    actions: {
-                        type: "interruptMovement",
-                    },
+                    actions: ["interruptMovement"], // массив строк
                 },
                 POINT_REACHED: {
                     target: "exploring",
@@ -75,9 +65,7 @@ export const soldierMachine = setup({
             on: {
                 ENEMY_LOST: {
                     target: "exploring",
-                    actions: {
-                        type: "startExploring",
-                    },
+                    actions: ["startExploring"], // массив строк
                 },
                 KILL: {
                     target: "dead",
@@ -88,14 +76,10 @@ export const soldierMachine = setup({
                     initial: "retreating",
                     on: {
                         DODGE_ON: {
-                            actions: {
-                                type: "enableDodging",
-                            },
+                            actions: ["enableDodging"], // массив строк
                         },
                         DODGE_OFF: {
-                            actions: {
-                                type: "disableDodging",
-                            },
+                            actions: ["disableDodging"], // массив строк
                         },
                     },
                     states: {
@@ -105,9 +89,7 @@ export const soldierMachine = setup({
                                     target: "pursuing",
                                 },
                             },
-                            entry: {
-                                type: "startRetreating",
-                            },
+                            entry: ["startRetreating"], // массив строк
                         },
                         pursuing: {
                             on: {
@@ -115,9 +97,7 @@ export const soldierMachine = setup({
                                     target: "retreating",
                                 },
                             },
-                            entry: {
-                                type: "startPursuing",
-                            },
+                            entry: ["startPursuing"], // массив строк
                         },
                     },
                 },

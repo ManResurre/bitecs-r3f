@@ -1,17 +1,25 @@
 import {AnimationClip} from "three";
 import {Vector3} from "../../../core/math/Vector3.ts";
 import {Quaternion} from "../../../core/math/Quaternion.ts";
-import {Api} from "../Soldier.ts";
 import {CrowdAgent} from "recast-navigation";
+import {Api} from "../Npc.ts";
 
-const DIRECTIONS = [
-    {direction: new Vector3(0, 0, 1), name: 'soldier_forward'},
-    {direction: new Vector3(0, 0, -1), name: 'soldier_backward'},
-    {direction: new Vector3(-1, 0, 0), name: 'soldier_left'},
-    {direction: new Vector3(1, 0, 0), name: 'soldier_right'}
-];
+export const ANIMATION_FLAGS = {
+    soldier_forward: 1 << 0,    // 0001
+    soldier_backward: 1 << 1,   // 0010
+    soldier_left: 1 << 2,       // 0100
+    soldier_right: 1 << 3       // 1000
+};
+
+const DIRECTIONS = new Map([
+    ['soldier_forward', new Vector3(0, 0, 1)],
+    ['soldier_backward', new Vector3(0, 0, -1)],
+    ['soldier_left', new Vector3(-1, 0, 0)],
+    ['soldier_right', new Vector3(1, 0, 0)],
+])
 
 export interface EntityAnimatable {
+    animation?: Api<AnimationClip>;
     lookDirection: Vector3;
     moveDirection: Vector3;
     rotation: Quaternion;
@@ -22,97 +30,92 @@ export interface EntityAnimatable {
 
     isVelocityZero(): boolean;
 
-    updateAnimations(): void;
+    update(delta: number): void;
 }
 
 export function WithAnimation<T extends new (...args: any[]) => EntityAnimatable>(Base: T) {
     return class extends Base implements EntityAnimatable {
-        animation?: Api<AnimationClip>;
-
         private tempForward = new Vector3(0, 0, 1);
         private tempUp = new Vector3(0, 1, 0);
-        private transformedDirection = new Vector3();
-        private weightings: number[] = [0, 0, 0, 0];
-        private positiveWeightings: number[] = [];
+        private animationsInitialized = false;
 
-        setAnimation(animation: Api<AnimationClip>) {
-            this.animation = animation;
+        update(delta: number) {
+            super.update(delta);
+            this.updateAnimations();
         }
 
         updateAnimations() {
-            if (!this.animation)
-                return;
+            if (!this.animation) return;
 
-            this.rotation.lookAt(
-                this.tempForward,
-                this.lookDirection,
-                this.tempUp
-            );
-
-            const velocity = this.crowdAgent.velocity();
-            this.moveDirection.copy(velocity).normalize();
-            this.calculateAnimationWeights(this.lookDirection, this.moveDirection);
-
-            if (this.isVelocityZero()) {
-                this.animation.actions["soldier_idle"]?.play()
-            } else {
-                this.animation.actions["soldier_idle"]?.stop()
-            }
-        }
-
-        private calculateAnimationWeights(lookDir: Vector3, moveDir: Vector3) {
-            if (!this.animation)
-                return;
-
-            this.positiveWeightings.length = 0;
-            let sum = 0;
-
-            // Вычисляем кватернион для преобразования направлений
-            // В оригинале это делается на основе разницы между forward и moveDirection
-            const rotationQuaternion = new Quaternion();
-            rotationQuaternion.lookAt(this.tempForward, moveDir, this.tempUp);
-
-            for (let i = 0; i < DIRECTIONS.length; i++) {
-                // Преобразуем локальное направление в мировое пространство
-                this.transformedDirection.copy(DIRECTIONS[i].direction).applyRotation(rotationQuaternion);
-
-                // Вычисляем скалярное произведение с направлением взгляда
-                const dot = this.transformedDirection.dot(lookDir);
-                this.weightings[i] = (dot < 0) ? 0 : dot;
-
-                const actionName = DIRECTIONS[i].name;
-                const action = this.animation.actions[actionName];
-                // console.log(action);
-
-                if (action) {
-                    if (this.weightings[i] > 0.001) {
-                        action.enabled = true;
-                        this.positiveWeightings.push(i);
-                        sum += this.weightings[i];
-
-                    } else {
-                        action.enabled = false;
+            if (!this.animationsInitialized) {
+                for (const action of Object.values(this.animation.actions)) {
+                    if (action) {
+                        action.play();
                         action.weight = 0;
                     }
                 }
+                this.animationsInitialized = true;
             }
 
-            for (let i = 0; i < this.positiveWeightings.length; i++) {
-                const index = this.positiveWeightings[i];
-                const actionName = DIRECTIONS[index].name;
-                const action = this.animation.actions[actionName];
+            this.rotation.lookAt(this.tempForward, this.lookDirection, this.tempUp);
 
-                if (action) {
-                    action.weight = this.weightings[index] / sum;
-                    action.timeScale = Math.max(0.1, Math.min(2.0, this.speed / this.maxSpeed));
+            const velocity = this.crowdAgent.velocity();
+            this.moveDirection.copy(velocity);
+            this.calculateAnimationWeights(this.lookDirection, this.moveDirection);
+        }
 
-                    if (!action.isRunning()) {
-                        action.play();
-                    }
-                }
+        private calculateAnimationWeights(lookDir: Vector3, moveDir: Vector3) {
+            if (!this.animation?.actions) return;
+
+            const isMoving = !this.isVelocityZero();
+            const idleAction = this.animation.actions["soldier_idle"];
+
+            if (!isMoving) {
+                this.setAllMovementWeights(0);
+                if (idleAction) idleAction.weight = 1;
+                return;
+            }
+
+            // ИНВЕРТИРУЕМ ось X для правильного определения направлений
+            const rightVector = this.getRightVector(lookDir);
+            const localX = -moveDir.dot(rightVector); // Добавляем минус здесь
+            const localZ = moveDir.dot(lookDir.normalize());
+            const magnitude = Math.sqrt(localX * localX + localZ * localZ);
+
+            const normX = localX / magnitude;
+            const normZ = localZ / magnitude;
+
+            const forward = Math.max(0, normZ) * magnitude;
+            const backward = Math.max(0, -normZ) * magnitude;
+            const right = Math.max(0, normX) * magnitude;
+            const left = Math.max(0, -normX) * magnitude;
+
+            const sum = forward + backward + right + left;
+            const normalizedSum = sum > 0 ? sum : 1;
+
+            this.setAnimationWeight('soldier_forward', forward / normalizedSum);
+            this.setAnimationWeight('soldier_backward', backward / normalizedSum);
+            this.setAnimationWeight('soldier_right', right / normalizedSum);
+            this.setAnimationWeight('soldier_left', left / normalizedSum);
+
+            if (idleAction) idleAction.weight = 0;
+        }
+
+        private getRightVector(lookDir: Vector3): Vector3 {
+            return new Vector3().crossVectors(this.tempUp.set(0, 1, 0), lookDir.normalize());
+        }
+
+        private setAnimationWeight(name: string, weight: number) {
+            const action = this.animation!.actions[name];
+            if (action) {
+                action.weight = weight;
             }
         }
 
-
+        private setAllMovementWeights(weight: number) {
+            for (const [animationName] of DIRECTIONS) {
+                this.setAnimationWeight(animationName, weight);
+            }
+        }
     };
 }

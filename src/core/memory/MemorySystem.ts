@@ -3,7 +3,7 @@ import {MemoryRecord} from "./MemoryRecord.ts";
 
 export class MemorySystem<T> extends Map<number, MemoryRecord<GameEntity>> {
     owner: T
-    memorySpan = 1;
+    memorySpan = 5000;
 
     constructor(owner: T) {
         super();

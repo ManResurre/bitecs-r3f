@@ -1,5 +1,5 @@
 import {Suspense} from "react";
-import {OrbitControls, Sky, Stats} from '@react-three/drei';
+import {Sky, Stats} from '@react-three/drei';
 import {Perf} from 'r3f-perf';
 import {useLoaderData} from "@tanstack/react-router";
 import {WorldContextProvider} from "../contexts/WorldContextProvider.tsx";
@@ -7,6 +7,8 @@ import Light from "./Light.tsx";
 import GameScene from "./GameScene.tsx";
 import {useControls} from "leva";
 import {Vector3} from "three";
+import CameraController from "./CameraController.tsx";
+import OcclusionController from "./OcclusionController.tsx";
 
 export function Game() {
     const {levelData} = useLoaderData({from: "/"});
@@ -19,8 +21,10 @@ export function Game() {
 
     return (
         <>
-            <OrbitControls/>
+            {/*<OrbitControls/>*/}
             <WorldContextProvider levelData={levelData}>
+                <CameraController/>
+                <OcclusionController/>
                 <Suspense>
                     <Sky
                         distance={1000}

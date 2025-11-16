@@ -1,7 +1,7 @@
 import {World} from "../../entities/World.ts";
 import {mobsQuery} from "../queries";
 import {MobComponent} from "../components";
-import {MOB_STATE} from "./spawnMobsSystem.ts";
+import {MOB_STATE} from "./spawnEnemySystem.ts";
 
 export const npcBehaviorSystem = (world: World) => {
     if (!world.crowd) {

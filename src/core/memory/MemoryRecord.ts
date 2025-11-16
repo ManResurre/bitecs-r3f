@@ -1,8 +1,8 @@
 import {Vector3} from "../math/Vector3.ts";
 
 export class MemoryRecord<T> {
-    timeBecameVisible = -Infinity;
-    timeLastSensed = -Infinity;
+    timeBecameVisible = 0;
+    timeLastSensed = 0;
     lastSensedPosition = new Vector3();
     visible = false;
 

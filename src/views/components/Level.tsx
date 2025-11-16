@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React, {useEffect, useRef} from "react";
 import {useLoader} from "@react-three/fiber";
 import {GLTFLoader} from "three/examples/jsm/Addons.js";
 import {Mesh, MeshBasicMaterial, MeshStandardMaterial, TextureLoader} from "three";
@@ -7,11 +7,16 @@ import {useWorld} from "../hooks/useWorld.tsx";
 
 const Level = () => {
     const world = useWorld()
+
+    const levelRef = useRef(null);
+
     const {scene} = useGLTF('./models/level.glb');
     const lightmap = useTexture('./textures/lightmap.png');
 
     useEffect(() => {
         if (!scene || !lightmap) return;
+
+        world.setLevelRef(levelRef);
 
         const mesh = scene.getObjectByName('level') as Mesh;
 
@@ -54,10 +59,10 @@ const Level = () => {
     useEffect(() => {
         if (!scene)
             return;
-        world.initNav(scene);
+        world.initNav(scene, world);
     }, [scene])
 
-    return <primitive object={scene}/>;
+    return <primitive ref={levelRef} object={scene}/>;
 }
 
 // Предзагрузка ресурсов

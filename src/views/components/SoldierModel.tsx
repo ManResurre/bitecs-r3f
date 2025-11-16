@@ -1,18 +1,15 @@
 import {Html, useAnimations, useGLTF} from "@react-three/drei";
 import React, {RefObject, useEffect, useMemo, useRef, useState} from "react";
 import {cloneWithSkinning} from "../../utils/SceneHelper.ts";
-import {Mob} from "../../entities/Mob.ts";
-import {AnimationAction, AnimationClip, Group, Mesh, MeshBasicMaterial, SphereGeometry, Quaternion} from "three";
+import {Group, MeshBasicMaterial, SphereGeometry} from "three";
 import {useWorld} from "../hooks/useWorld.tsx";
 import {useFrame} from "@react-three/fiber";
 import AssaultRifle from "./AssaultRifle.tsx";
 import DebugArrows, {DebugArrowsRef} from "./debug/DebugArrows.tsx";
 import {VisionHelper} from "./debug/VisionHelper.tsx";
 import {Target} from "./debug/VisionExample.tsx";
-import {useDebugCharacterBounds} from "./debug/DebugCharacterBounds.tsx";
 import {useControls} from "leva";
-import {MobComponent} from "../../logic/components";
-import {Soldier} from "../../entities/soldier/Soldier.ts";
+import {CrowdAgentComponent} from "../../logic/components";
 import {Vector3} from "../../core/math/Vector3.ts";
 
 export interface SoldierModelProps {
@@ -32,7 +29,7 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
     const targetSpheresRef = useRef<Group>(null); // Ref для сфер целей
     const soldierEntity = useMemo(() => world.getSoldier(eid), [eid, world]);
 
-    const [status, setStatus] = useState<string[]>();
+    const [status, setStatus] = useState<string>('');
 
     const {
         boundsHelperDebug,
@@ -47,7 +44,7 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
         targetSHelperDebug: false,
         visionHelperDebug: false,
         targetHelper: false,
-        statusHelper: false
+        statusHelper: true
     }, {collapsed: true})
 
     // const mobEntity = useMemo(() => {
@@ -55,7 +52,7 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
     // }, [world.entityManager, eid]);
     //
     const crowdAgent = useMemo(() => {
-        return world.crowd?.getAgent(MobComponent.crowdId[eid]);
+        return world.crowd?.getAgent(CrowdAgentComponent.crowdId[eid]);
     }, [world.crowd, eid]);
 
     const {scene, animations} = useGLTF("./models/soldier.glb");
@@ -139,8 +136,8 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
             //         });
             //     }
             //
-            //     if (statusHelper)
-            //         setStatus(soldierEntity.getStatus())
+            if (statusHelper)
+                setStatus(soldierEntity.getStatus())
         }
     });
 
@@ -166,10 +163,9 @@ const SoldierModel = ({eid, ...props}: SoldierModelProps) => {
                         padding: '5px'
                     }}
                           position={[0, 2, 0]}>
-                        {status?.map(s => <p style={{padding: 0, margin: 0}}
-                                             key={s}>{s}</p>
-                        )}
-                    </Html>}
+                        {status}
+                    </Html>
+                }
             </primitive>
             <AssaultRifle ref={weaponRef} eid={soldierEntity?.arId}/>
 
