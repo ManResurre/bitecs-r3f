@@ -1,5 +1,5 @@
 import {useGLTF} from "@react-three/drei";
-import {useEffect, useMemo, useRef, useState} from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import MuzzleFlash from "./MuzzleFlash.tsx";
 import {Group, Mesh, Sprite, TextureLoader, Vector3} from "three";
 import {useFrame, useLoader} from "@react-three/fiber";
@@ -66,4 +66,4 @@ const AssaultRifle = ({
 
 useLoader.preload(GLTFLoader, './models/assaultRifle_high.glb');
 useLoader.preload(TextureLoader, './textures/muzzle.png');
-export default AssaultRifle;
+export default React.memo(AssaultRifle);

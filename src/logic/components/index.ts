@@ -19,8 +19,14 @@ export const TileComponent = defineComponent({id: Types.ui8});
 export const ColorComponent = defineComponent({team: Types.ui8});
 export const MobComponent = defineComponent({
     name: [Types.ui8, 32],
+});
+
+export const PlayerComponent = defineComponent({
+    name: [Types.ui8, 32],
+});
+
+export const CrowdAgentComponent = defineComponent({
     crowdId: Types.i32,
-    state: Types.i32
 });
 
 export const SpawnComponent = defineComponent({

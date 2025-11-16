@@ -1,25 +1,34 @@
-import {useThree} from '@react-three/fiber';
-import {useControls} from 'leva';
-import React, {useEffect} from "react";
+import { useRef } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Vector3 } from "../../core/math/Vector3.ts";
+import { useWorld } from "../hooks/useWorld.tsx";
+import { PlayerEntity } from "../../entities/soldier/PlayerEntity.ts";
 
 const CameraController = () => {
-    const {camera} = useThree();
+    const { camera } = useThree();
+    const world = useWorld();
+    const cameraOffset = useRef(new Vector3(0, 10, 5));
+    const targetPosition = useRef(new Vector3());
+    const currentPosition = useRef(new Vector3());
 
-    const {position, lookAt, zoom} = useControls('Camera', {
-        position: {value: [5, 7, 8], min: -10, max: 10},
-        lookAt: {value: [0, 0, 0], min: -10, max: 10},
-        zoom: {value: 0.9, min: 0, max: 1}
+    useFrame((_, delta) => {
+        if (!world.playerId) return;
+
+        const player = world.entityManager.get(world.playerId!) as PlayerEntity;
+        if (!player) return;
+
+        // Используем позицию игрока
+        const playerPos = player.position;
+
+        targetPosition.current.copy(playerPos).add(cameraOffset.current);
+        currentPosition.current.lerp(targetPosition.current, 5 * delta);
+        camera.position.copy(currentPosition.current);
+
+        const lookAtTarget = new Vector3(playerPos.x, playerPos.y + 2, playerPos.z);
+        camera.lookAt(lookAtTarget);
     });
-
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/immutability
-        camera.zoom = zoom;
-        camera.position.set(...position);
-        camera.lookAt(...lookAt);
-        camera.updateProjectionMatrix();
-    }, [camera, position, lookAt, zoom]);
 
     return null;
 };
 
-export default React.memo(CameraController);
+export default CameraController;

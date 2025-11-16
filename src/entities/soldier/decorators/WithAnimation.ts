@@ -1,17 +1,25 @@
 import {AnimationClip} from "three";
 import {Vector3} from "../../../core/math/Vector3.ts";
 import {Quaternion} from "../../../core/math/Quaternion.ts";
-import {Api} from "../Soldier.ts";
 import {CrowdAgent} from "recast-navigation";
+import {Api} from "../Npc.ts";
 
-const DIRECTIONS = [
-    {direction: new Vector3(0, 0, 1), name: 'soldier_forward'},
-    {direction: new Vector3(0, 0, -1), name: 'soldier_backward'},
-    {direction: new Vector3(-1, 0, 0), name: 'soldier_left'},
-    {direction: new Vector3(1, 0, 0), name: 'soldier_right'}
-];
+export const ANIMATION_FLAGS = {
+    soldier_forward: 1 << 0,    // 0001
+    soldier_backward: 1 << 1,   // 0010
+    soldier_left: 1 << 2,       // 0100
+    soldier_right: 1 << 3       // 1000
+};
+
+const DIRECTIONS = new Map([
+    ['soldier_forward', new Vector3(0, 0, 1)],
+    ['soldier_backward', new Vector3(0, 0, -1)],
+    ['soldier_left', new Vector3(-1, 0, 0)],
+    ['soldier_right', new Vector3(1, 0, 0)],
+])
 
 export interface EntityAnimatable {
+    animation?: Api<AnimationClip>;
     lookDirection: Vector3;
     moveDirection: Vector3;
     rotation: Quaternion;
@@ -22,21 +30,20 @@ export interface EntityAnimatable {
 
     isVelocityZero(): boolean;
 
-    updateAnimations(): void;
+    update(delta: number): void;
 }
 
 export function WithAnimation<T extends new (...args: any[]) => EntityAnimatable>(Base: T) {
     return class extends Base implements EntityAnimatable {
-        animation?: Api<AnimationClip>;
-
         private tempForward = new Vector3(0, 0, 1);
         private tempUp = new Vector3(0, 1, 0);
         private transformedDirection = new Vector3();
-        private weightings: number[] = [0, 0, 0, 0];
-        private positiveWeightings: number[] = [];
+        private weightings = new Map<string, number>();
+        private activeAnimations: number = 0; // Битовое поле для активных анимаций
 
-        setAnimation(animation: Api<AnimationClip>) {
-            this.animation = animation;
+        update(delta: number) {
+            super.update(delta);
+            this.updateAnimations();
         }
 
         updateAnimations() {
@@ -50,7 +57,7 @@ export function WithAnimation<T extends new (...args: any[]) => EntityAnimatable
             );
 
             const velocity = this.crowdAgent.velocity();
-            this.moveDirection.copy(velocity).normalize();
+            this.moveDirection.copy(velocity);
             this.calculateAnimationWeights(this.lookDirection, this.moveDirection);
 
             if (this.isVelocityZero()) {
@@ -64,46 +71,56 @@ export function WithAnimation<T extends new (...args: any[]) => EntityAnimatable
             if (!this.animation)
                 return;
 
-            this.positiveWeightings.length = 0;
+            this.activeAnimations = 0; // Сбрасываем флаги
+            this.weightings.clear(); // Очищаем веса
             let sum = 0;
 
             // Вычисляем кватернион для преобразования направлений
-            // В оригинале это делается на основе разницы между forward и moveDirection
             const rotationQuaternion = new Quaternion();
             rotationQuaternion.lookAt(this.tempForward, moveDir, this.tempUp);
 
-            for (let i = 0; i < DIRECTIONS.length; i++) {
+            for (const [animationName, directionVector] of DIRECTIONS) {
+
                 // Преобразуем локальное направление в мировое пространство
-                this.transformedDirection.copy(DIRECTIONS[i].direction).applyRotation(rotationQuaternion);
+                this.transformedDirection.copy(directionVector).applyRotation(rotationQuaternion);
 
                 // Вычисляем скалярное произведение с направлением взгляда
                 const dot = this.transformedDirection.dot(lookDir);
-                this.weightings[i] = (dot < 0) ? 0 : dot;
+                const weight = (dot < 0) ? 0 : dot;
 
-                const actionName = DIRECTIONS[i].name;
-                const action = this.animation.actions[actionName];
-                // console.log(action);
+                this.weightings.set(animationName, weight);
 
-                if (action) {
-                    if (this.weightings[i] > 0.001) {
-                        action.enabled = true;
-                        this.positiveWeightings.push(i);
-                        sum += this.weightings[i];
+                const action = this.animation.actions[animationName];
 
-                    } else {
-                        action.enabled = false;
-                        action.weight = 0;
-                    }
+                if (!action)
+                    continue;
+
+                if (weight) {
+                    action.enabled = true;
+                    this.activeAnimations |= ANIMATION_FLAGS[animationName];
+                    sum += weight;
+                } else {
+                    action.enabled = false;
+                    action.weight = 0;
                 }
             }
 
-            for (let i = 0; i < this.positiveWeightings.length; i++) {
-                const index = this.positiveWeightings[i];
-                const actionName = DIRECTIONS[index].name;
-                const action = this.animation.actions[actionName];
+            for (const [animationName] of DIRECTIONS) {
 
-                if (action) {
-                    action.weight = this.weightings[index] / sum;
+                const action = this.animation.actions[animationName];
+                const weight = this.weightings.get(animationName) || 0;
+
+                if (action && (this.activeAnimations & ANIMATION_FLAGS[animationName])) {
+                    //нормализация весов
+                    // До нормализации
+                    // soldier_forward weight: 0.8
+                    // soldier_right weight: 0.4
+                    // Сумма: 1.2
+                    // После нормализации
+                    // soldier_forward: 0.8 / 1.2 = 0.67 (67%)
+                    // soldier_right: 0.4 / 1.2 = 0.33 (33%)
+                    // Сумма: 1.0 (100%)
+                    action.weight = weight / sum;
                     action.timeScale = Math.max(0.1, Math.min(2.0, this.speed / this.maxSpeed));
 
                     if (!action.isRunning()) {
@@ -112,7 +129,5 @@ export function WithAnimation<T extends new (...args: any[]) => EntityAnimatable
                 }
             }
         }
-
-
     };
 }
